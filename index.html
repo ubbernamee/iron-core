@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="IRON CORE" />
+  <meta name="theme-color" content="#09090B" />
+  <title>IRON CORE // Твоя Программа 13 Недель & КБЖУ</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            bg: '#09090B',
+            surface: '#111114',
+            surfaceHover: '#18181C',
+            borderSubtle: '#222228',
+          }
+        }
+      }
+    };
+  </script>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  </script>
+
+  <style>
+    * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+    body {
+      background-color: #09090B;
+      color: #FAFAFA;
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .tabular { font-variant-numeric: tabular-nums; }
+    .bg-grid {
+      background-size: 32px 32px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #09090B; }
+    ::-webkit-scrollbar-thumb { background: #27272A; border-radius: 9999px; }
+  </style>
+</head>
+<body class="bg-bg bg-grid min-h-screen antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    // ============================================================================
+    // 1. ТВОЯ БАЗА 1ПМ (Все базовые упражнения из твоего PDF-гайда)
+    // ============================================================================
+    const DEFAULT_EXERCISES = [
+      {
+        id: 'bench',
+        name: 'Жим штанги лежа',
+        shortName: 'Жим лежа',
+        aliases: ['жим штанги лежа', 'жим лежа', 'жим'],
+        oneRepMax: 120,
+        barbellWeight: 20,
+        step: 2.5,
+        history: [{ date: '2026-11-18', weight: 120 }],
+      },
+      {
+        id: 'squat',
+        name: 'Приседания со штангой',
+        shortName: 'Присед',
+        aliases: ['приседания', 'присед'],
+        oneRepMax: 150,
+        barbellWeight: 20,
+        step: 2.5,
+        history: [{ date: '2026-11-18', weight: 150 }],
+      },
+      {
+        id: 'deadlift',
+        name: 'Становая / Мертвая тяга',
+        shortName: 'Становая',
+        aliases: ['тяга становая', 'становая', 'мертвая тяга'],
+        oneRepMax: 180,
+        barbellWeight: 20,
+        step: 2.5,
+        history: [{ date: '2026-11-18', weight: 180 }],
+      },
+      {
+        id: 'ohp',
+        name: 'Жим штанги стоя / сидя',
+        shortName: 'Жим стоя',
+        aliases: ['жим штанги стоя', 'жим штанги сидя', 'армейский'],
+        oneRepMax: 75,
+        barbellWeight: 20,
+        step: 2.5,
+        history: [{ date: '2026-11-18', weight: 75 }],
+      },
+      {
+        id: 'incline',
+        name: 'Жим лежа на скамье 30°',
+        shortName: 'Жим 30°',
+        aliases: ['на скамье 30', 'жим наклонный'],
+        oneRepMax: 95,
+        barbellWeight: 20,
+        step: 2.5,
+        history: [{ date: '2026-11-18', weight: 95 }],
+      },
+      {
+        id: 'close_bench',
+        name: 'Жим узким / средним хватом',
+        shortName: 'Узкий/Средний',
+        aliases: ['узким хватом', 'средним хватом'],
+        oneRepMax: 105,
+        barbellWeight: 20,
+        step: 2.5,
+        history: [{ date: '2026-11-18', weight: 105 }],
+      },
+    ];
+
+    const DEFAULT_MEAL_TEMPLATES = [
+      { id: 'm1', name: 'Творог 500г + молоко + сгущенка', kcal: 780, p: 84, f: 18, c: 68 },
+      { id: 'm2', name: 'Гречка 100г (сух) + грудка 250г', kcal: 640, p: 62, f: 8, c: 76 },
+      { id: 'm3', name: 'Яичница (4 яйца) + тосты + сыр', kcal: 540, p: 32, f: 34, c: 26 },
+      { id: 'm4', name: 'Банановые панкейки + протеин', kcal: 490, p: 38, f: 10, c: 62 },
+      { id: 'm5', name: 'Рис 120г + говядина 200г + овощи', kcal: 760, p: 48, f: 22, c: 92 },
+    ];
+
+    const PLATE_INVENTORY = [
+      { weight: 25,   color: '#EF4444', border: '#B91C1C', height: 64, width: 11, label: '25' },
+      { weight: 20,   color: '#3B82F6', border: '#1D4ED8', height: 64, width: 10, label: '20' },
+      { weight: 15,   color: '#EAB308', border: '#A16207', height: 56, width: 9,  label: '15' },
+      { weight: 10,   color: '#22C55E', border: '#15803D', height: 48, width: 8,  label: '10' },
+      { weight: 5,    color: '#F4F4F5', border: '#A1A1AA', height: 38, width: 7,  label: '5'  },
+      { weight: 2.5,  color: '#3F3F46', border: '#71717A', height: 30, width: 6,  label: '2.5'},
+      { weight: 1.25, color: '#A1A1AA', border: '#D4D4D8', height: 24, width: 5,  label: '1.25'},
+    ];
+
+    // Полная оцифрованная 13-недельная программа из твоего PDF («Клуб 150 кг»)
+    const BUILTIN_13_WEEKS = [{"week": 1, "title": "1 НЕДЕЛЯ · Начало...", "days": [{"day": "Пн", "title": "1 Неделя · Понедельник", "items": [{"name": "Приседания (или Разгибание бедра)", "exId": "squat", "blocks": [{"pct": 50, "reps": 10, "sets": 3}], "isBase": true, "note": "Разминка + втягивающий объем"}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 75, "reps": 3, "sets": 5}], "isBase": true, "note": "База · Отдых 3–5 мин"}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 3}], "isBase": false, "note": "Подсобка · Вес индивидуально"}, {"name": "Сгибание штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": "Подсобка"}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": "Без отягощения"}, {"name": "Гиперэкстензия", "exId": null, "blocks": [{"pct": 0, "reps": 20, "sets": 2}], "isBase": false, "note": "Без отягощения"}]}, {"day": "Ср", "title": "1 Неделя · Среда", "items": [{"name": "Гиперэкстензия с весом", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": "Вес блина индивидуально"}, {"name": "Жим штанги стоя", "exId": "ohp", "blocks": [{"pct": 35, "reps": 6, "sets": 2}], "isBase": true, "note": "Легкая техническая работа"}, {"name": "Подтягивания узким хватом + Горизонтальная тяга блока (Суперсет)", "exId": null, "blocks": [{"pct": 0, "reps": 15, "sets": 4}, {"pct": 0, "reps": 30, "sets": 4}], "isBase": false, "note": "Суперсет без отдыха между упражнениями"}, {"name": "Сгибания кисти", "exId": null, "blocks": [{"pct": 0, "reps": 15, "sets": 4}], "isBase": false, "note": "Предплечья"}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "1 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 60, "reps": 5, "sets": 2}], "isBase": true, "note": "Легкий жим"}, {"name": "Жим штанги лежа на скамье 30°", "exId": "incline", "blocks": [{"pct": 50, "reps": 6, "sets": 4}], "isBase": true, "note": "Верх грудных"}, {"name": "Разводка гантелей лежа на скамье 30°", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Махи гантелей в сторону", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": "Средняя дельта"}, {"name": "Сгибание на бицепс обратным хватом", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}]}]}, {"week": 2, "title": "2 НЕДЕЛЯ · Ты уже на пути!", "days": [{"day": "Пн", "title": "2 Неделя · Понедельник", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 4, "sets": 2}, {"pct": 77, "reps": 3, "sets": 5}], "isBase": true, "note": "2 подхода 70%×4, затем 5 рабочих 77%×3"}, {"name": "Приседания (или Разгибание бедра)", "exId": "squat", "blocks": [{"pct": 60, "reps": 8, "sets": 4}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа узким хватом", "exId": "close_bench", "blocks": [{"pct": 50, "reps": 5, "sets": 5}], "isBase": true, "note": "Трицепс и дожим"}, {"name": "Сгибание штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 12, "sets": 4}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "2 Неделя · Среда", "items": [{"name": "Тяга становая", "exId": "deadlift", "blocks": [{"pct": 50, "reps": 8, "sets": 4}], "isBase": true, "note": "База · Отдых 3–5 мин"}, {"name": "Жим штанги сидя", "exId": "ohp", "blocks": [{"pct": 35, "reps": 6, "sets": 4}], "isBase": true, "note": ""}, {"name": "Вертикальная тяга блока + Горизонтальная тяга (Суперсет)", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 5}, {"pct": 0, "reps": 10, "sets": 5}], "isBase": false, "note": "Суперсет на спину"}, {"name": "Сгибания кисти", "exId": null, "blocks": [{"pct": 0, "reps": 15, "sets": 4}], "isBase": false, "note": ""}, {"name": "Гиперэкстензия", "exId": null, "blocks": [{"pct": 0, "reps": 20, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "2 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 3, "sets": 2}, {"pct": 80, "reps": 3, "sets": 5}], "isBase": true, "note": "Выход на 80% × 3 × 5"}, {"name": "Жим гантелей лежа на скамье 30°", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Разгибания на трицепс в блоке", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания на бицепс с гантелями «молотки»", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 5}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}]}, {"week": 3, "title": "3 НЕДЕЛЯ · Первые успехи", "days": [{"day": "Пн", "title": "3 Неделя · Понедельник", "items": [{"name": "Приседания (или Разгибание бедра)", "exId": "squat", "blocks": [{"pct": 60, "reps": 12, "sets": 3}], "isBase": true, "note": "Многоповторный присед"}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 80, "reps": 3, "sets": 6}], "isBase": true, "note": "6 рабочих подходов на 80%"}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 6, "sets": 6}], "isBase": false, "note": "Тяжелый бицепс 6×6"}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "3 Неделя · Среда", "items": [{"name": "Тяга становая", "exId": "deadlift", "blocks": [{"pct": 55, "reps": 8, "sets": 4}], "isBase": true, "note": ""}, {"name": "Жим штанги сидя", "exId": "ohp", "blocks": [{"pct": 40, "reps": 5, "sets": 5}], "isBase": true, "note": ""}, {"name": "Подтягивания широким хватом", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Вертикальная тяга блока к груди", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 3}], "isBase": false, "note": ""}, {"name": "Негативные подтягивания", "exId": null, "blocks": [{"pct": 0, "reps": 4, "sets": 3}], "isBase": false, "note": "Медленное опускание"}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "3 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 5, "sets": 5}], "isBase": true, "note": "Объемный жим 5×5"}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 3}], "isBase": false, "note": ""}, {"name": "Жим средним хватом", "exId": "close_bench", "blocks": [{"pct": 55, "reps": 5, "sets": 4}], "isBase": true, "note": ""}, {"name": "Сгибания на бицепс обратным хватом", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}]}, {"week": 4, "title": "4 НЕДЕЛЯ · Уверенность набирает обороты!", "days": [{"day": "Пн", "title": "4 Неделя · Понедельник", "items": [{"name": "Приседания (или Разгибание бедра)", "exId": "squat", "blocks": [{"pct": 50, "reps": 15, "sets": 3}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 4, "sets": 2}, {"pct": 75, "reps": 4, "sets": 2}, {"pct": 77, "reps": 3, "sets": 2}, {"pct": 85, "reps": 2, "sets": 2}, {"pct": 82, "reps": 2, "sets": 3}], "isBase": true, "note": "Пирамида с выходом на 85% × 2 × 2"}, {"name": "Разводка гантелей лежа на скамье 30°", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 3}], "isBase": false, "note": ""}, {"name": "Французский жим", "exId": null, "blocks": [{"pct": 0, "reps": 5, "sets": 5}], "isBase": false, "note": "Трицепс очень аккуратно"}, {"name": "Сгибания штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "4 Неделя · Среда", "items": [{"name": "Тяга становая", "exId": "deadlift", "blocks": [{"pct": 60, "reps": 5, "sets": 5}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа на скамье 30°", "exId": "incline", "blocks": [{"pct": 60, "reps": 4, "sets": 5}], "isBase": true, "note": ""}, {"name": "Вертикальная тяга блока к груди", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Горизонтальная тяга блока к поясу", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 4, "sets": 4}], "isBase": true, "note": "Второй жим за неделю"}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "4 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 3, "sets": 2}, {"pct": 75, "reps": 3, "sets": 5}], "isBase": true, "note": ""}, {"name": "Разводка гантелей лежа на скамье 30°", "exId": null, "blocks": [{"pct": 0, "reps": 6, "sets": 4}], "isBase": false, "note": ""}, {"name": "Жим лежа негативный", "exId": "bench", "blocks": [{"pct": 70, "reps": 4, "sets": 2}, {"pct": 85, "reps": 3, "sets": 4}], "isBase": true, "note": "Только фаза опускания штанги, вверх поднимает страхующий"}, {"name": "Махи гантелей в сторону", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания на бицепс обратным хватом", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 5}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}]}, {"week": 5, "title": "5 НЕДЕЛЯ · Ты становишься сильнее", "days": [{"day": "Пн", "title": "5 Неделя · Понедельник", "items": [{"name": "Приседания (или Разгибание бедра)", "exId": "squat", "blocks": [{"pct": 60, "reps": 8, "sets": 4}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 3, "sets": 2}, {"pct": 80, "reps": 3, "sets": 6}], "isBase": true, "note": ""}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Жим штанги лежа (Лесенка)", "exId": "bench", "blocks": [{"pct": 60, "reps": 5, "sets": 1}, {"pct": 65, "reps": 5, "sets": 1}, {"pct": 70, "reps": 5, "sets": 1}, {"pct": 75, "reps": 5, "sets": 1}, {"pct": 80, "reps": 5, "sets": 1}], "isBase": true, "note": "Плавный подъем 60% -> 80% по 5 повторений"}, {"name": "Сгибание штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "5 Неделя · Среда", "items": [{"name": "Тяга становая", "exId": "deadlift", "blocks": [{"pct": 65, "reps": 6, "sets": 5}], "isBase": true, "note": "Или гиперэкстензия с весом 20×8×4"}, {"name": "Жим штанги лежа на скамье 30°", "exId": "incline", "blocks": [{"pct": 65, "reps": 4, "sets": 5}], "isBase": true, "note": ""}, {"name": "Подтягивания узким хватом", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Горизонтальная тяга блока к поясу", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Тяга гантели в наклоне", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "5 Неделя · Пятница", "items": [{"name": "Жим штанги лежа (Волна)", "exId": "bench", "blocks": [{"pct": 60, "reps": 6, "sets": 1}, {"pct": 65, "reps": 5, "sets": 1}, {"pct": 70, "reps": 4, "sets": 1}, {"pct": 80, "reps": 3, "sets": 1}, {"pct": 85, "reps": 2, "sets": 1}, {"pct": 87, "reps": 1, "sets": 1}, {"pct": 82.5, "reps": 3, "sets": 1}, {"pct": 75, "reps": 4, "sets": 1}, {"pct": 60, "reps": 6, "sets": 1}, {"pct": 55, "reps": 8, "sets": 1}], "isBase": true, "note": "Вас погубит жадность. Не прибавляйте вес!"}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 3}], "isBase": false, "note": ""}, {"name": "Жим гантелей сидя", "exId": null, "blocks": [{"pct": 0, "reps": 6, "sets": 4}], "isBase": false, "note": ""}, {"name": "Махи гантелей в сторону", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания на бицепс «молотки»", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}]}, {"week": 6, "title": "6 НЕДЕЛЯ · Середина пути!", "days": [{"day": "Пн", "title": "6 Неделя · Понедельник", "items": [{"name": "Приседания (или Разгибание бедра)", "exId": "squat", "blocks": [{"pct": 70, "reps": 6, "sets": 5}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 4, "sets": 2}, {"pct": 80, "reps": 3, "sets": 2}, {"pct": 85, "reps": 2, "sets": 3}], "isBase": true, "note": "3 подхода по 2 повторения на 85%"}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 5}], "isBase": false, "note": ""}, {"name": "Жим лежа средним хватом", "exId": "close_bench", "blocks": [{"pct": 55, "reps": 5, "sets": 1}, {"pct": 60, "reps": 5, "sets": 1}, {"pct": 65, "reps": 5, "sets": 1}, {"pct": 70, "reps": 5, "sets": 1}, {"pct": 75, "reps": 5, "sets": 1}], "isBase": true, "note": ""}, {"name": "Сгибания штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 6, "sets": 6}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "6 Неделя · Среда", "items": [{"name": "Мертвая тяга", "exId": "deadlift", "blocks": [{"pct": 50, "reps": 12, "sets": 3}], "isBase": true, "note": ""}, {"name": "Жим штанги стоя", "exId": "ohp", "blocks": [{"pct": 40, "reps": 6, "sets": 5}], "isBase": true, "note": ""}, {"name": "Вертикальная тяга + Горизонтальная тяга (Суперсет)", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}, {"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": "Суперсет"}, {"name": "Тяга Т-грифа", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Гиперэкстензия", "exId": null, "blocks": [{"pct": 0, "reps": 20, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "6 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 80, "reps": 4, "sets": 4}], "isBase": true, "note": "80% × 4 × 4"}, {"name": "Жим штанги лежа на скамье 30°", "exId": "incline", "blocks": [{"pct": 50, "reps": 8, "sets": 3}], "isBase": true, "note": ""}, {"name": "Махи гантелей в сторону", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Разгибания на трицепс в блоке", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": "Легко"}, {"name": "Сгибания на бицепс обратным хватом", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}]}]}, {"week": 7, "title": "7 НЕДЕЛЯ · По ту сторону экватора", "days": [{"day": "Пн", "title": "7 Неделя · Понедельник", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 3, "sets": 2}, {"pct": 80, "reps": 3, "sets": 2}, {"pct": 85, "reps": 2, "sets": 2}, {"pct": 80, "reps": 3, "sets": 2}], "isBase": true, "note": ""}, {"name": "Приседания (или Разгибание бедра)", "exId": "squat", "blocks": [{"pct": 60, "reps": 10, "sets": 3}], "isBase": true, "note": ""}, {"name": "Жим средним хватом", "exId": "close_bench", "blocks": [{"pct": 75, "reps": 4, "sets": 4}], "isBase": true, "note": ""}, {"name": "Сгибания штанги + Сгибания обратным хватом (Суперсет)", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 3}, {"pct": 0, "reps": 8, "sets": 3}], "isBase": false, "note": "Суперсет на бицепс"}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "7 Неделя · Среда", "items": [{"name": "Тяга становая", "exId": "deadlift", "blocks": [{"pct": 55, "reps": 8, "sets": 4}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа на скамье 30°", "exId": "incline", "blocks": [{"pct": 65, "reps": 5, "sets": 4}], "isBase": true, "note": ""}, {"name": "Разгибания на трицепс в блоке", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Горизонтальная тяга блока к поясу", "exId": null, "blocks": [{"pct": 0, "reps": 20, "sets": 4}], "isBase": false, "note": ""}, {"name": "Тяга Т-грифа", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Гиперэкстензия", "exId": null, "blocks": [{"pct": 0, "reps": 20, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "7 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 3, "sets": 2}, {"pct": 80, "reps": 3, "sets": 1}, {"pct": 85, "reps": 2, "sets": 3}, {"pct": 87, "reps": 1, "sets": 2}], "isBase": true, "note": "Синглы на 87%"}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Жим штанги лежа (Добивка)", "exId": "bench", "blocks": [{"pct": 70, "reps": 5, "sets": 5}], "isBase": true, "note": ""}, {"name": "Махи гантелей в сторону", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания на бицепс «молотки»", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}]}, {"week": 8, "title": "8 НЕДЕЛЯ · Не сворачивай с пути!", "days": [{"day": "Пн", "title": "8 Неделя · Понедельник", "items": [{"name": "Приседания (или Разгибание бедра)", "exId": "squat", "blocks": [{"pct": 70, "reps": 5, "sets": 5}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 3, "sets": 2}, {"pct": 80, "reps": 3, "sets": 2}, {"pct": 85, "reps": 2, "sets": 5}], "isBase": true, "note": "5 подходов по 2 на 85%"}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 3}], "isBase": false, "note": ""}, {"name": "Французский жим", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": "Очень аккуратно"}, {"name": "Сгибания штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 5}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "8 Неделя · Среда", "items": [{"name": "Гиперэкстензия с весом", "exId": null, "blocks": [{"pct": 0, "reps": 20, "sets": 3}], "isBase": false, "note": "С весом 20 кг"}, {"name": "Жим штанги лежа на скамье 30°", "exId": "incline", "blocks": [{"pct": 70, "reps": 5, "sets": 3}], "isBase": true, "note": ""}, {"name": "Жим гантелей сидя", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 3}], "isBase": false, "note": ""}, {"name": "Подтягивания узким хватом", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Вертикальная тяга блока к груди", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "8 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 3, "sets": 2}, {"pct": 80, "reps": 4, "sets": 4}], "isBase": true, "note": ""}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 6, "sets": 5}], "isBase": false, "note": ""}, {"name": "Разгибания на трицепс в блоке", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}, {"name": "Сгибания штанги на бицепс обратным хватом", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}]}, {"week": 9, "title": "9 НЕДЕЛЯ · Дорогу осилит идущий", "days": [{"day": "Пн", "title": "9 Неделя · Понедельник", "items": [{"name": "Приседания (или Разгибание бедра)", "exId": "squat", "blocks": [{"pct": 60, "reps": 8, "sets": 4}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 50, "reps": 8, "sets": 1}, {"pct": 60, "reps": 6, "sets": 1}, {"pct": 70, "reps": 5, "sets": 2}, {"pct": 80, "reps": 4, "sets": 2}, {"pct": 85, "reps": 3, "sets": 2}, {"pct": 87, "reps": 2, "sets": 2}], "isBase": true, "note": "Выход на 87% × 2 × 2"}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 3}], "isBase": false, "note": ""}, {"name": "Разгибания на трицепс в блоке", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}, {"name": "Сгибания штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "9 Неделя · Среда", "items": [{"name": "Тяга становая", "exId": "deadlift", "blocks": [{"pct": 60, "reps": 8, "sets": 3}], "isBase": true, "note": ""}, {"name": "Тяга Т-грифа", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Вертикальная тяга + Горизонтальная тяга (Суперсет)", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 3}, {"pct": 0, "reps": 10, "sets": 3}], "isBase": false, "note": "Суперсет"}, {"name": "Сгибания кисти", "exId": null, "blocks": [{"pct": 0, "reps": 15, "sets": 4}], "isBase": false, "note": ""}, {"name": "Гиперэкстензия", "exId": null, "blocks": [{"pct": 0, "reps": 20, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "9 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 3, "sets": 2}, {"pct": 80, "reps": 3, "sets": 2}, {"pct": 85, "reps": 2, "sets": 3}], "isBase": true, "note": ""}, {"name": "Разводка гантелей лежа на скамье 30°", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 3}], "isBase": false, "note": ""}, {"name": "Жим лежа в слингшоте или с бруска 15 см", "exId": "bench", "blocks": [{"pct": 70, "reps": 3, "sets": 1}, {"pct": 80, "reps": 3, "sets": 1}, {"pct": 90, "reps": 3, "sets": 1}, {"pct": 100, "reps": 1, "sets": 2}], "isBase": true, "note": "Адаптация ЦНС к 100% весу"}, {"name": "Махи гантелей в сторону", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания на бицепс «молотки»", "exId": null, "blocks": [{"pct": 0, "reps": 12, "sets": 4}], "isBase": false, "note": ""}]}]}, {"week": 10, "title": "10 НЕДЕЛЯ · Успех уже близко!", "days": [{"day": "Пн", "title": "10 Неделя · Понедельник", "items": [{"name": "Приседания (или Разгибание бедра)", "exId": "squat", "blocks": [{"pct": 70, "reps": 5, "sets": 4}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 60, "reps": 6, "sets": 1}, {"pct": 70, "reps": 5, "sets": 1}, {"pct": 80, "reps": 4, "sets": 4}, {"pct": 85, "reps": 3, "sets": 2}, {"pct": 87, "reps": 2, "sets": 2}], "isBase": true, "note": ""}, {"name": "Разводка гантелей лежа на скамье 30°", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}, {"name": "Жим штанги лежа скоростной", "exId": "bench", "blocks": [{"pct": 60, "reps": 2, "sets": 5}], "isBase": true, "note": "Опускаем медленно и взрыв вверх. Отдых не более 1 мин"}, {"name": "Сгибания штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 6, "sets": 6}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "10 Неделя · Среда", "items": [{"name": "Тяга становая", "exId": "deadlift", "blocks": [{"pct": 70, "reps": 4, "sets": 4}], "isBase": true, "note": ""}, {"name": "Подтягивания узким хватом", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 3}], "isBase": false, "note": ""}, {"name": "Горизонтальная тяга блока к поясу", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 5}], "isBase": false, "note": ""}, {"name": "Тяга гантели в наклоне", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 3}], "isBase": false, "note": ""}, {"name": "Гиперэкстензия", "exId": null, "blocks": [{"pct": 0, "reps": 20, "sets": 2}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "10 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 80, "reps": 2, "sets": 4}], "isBase": true, "note": "Тонизирующий жим"}, {"name": "Жим гантелей лежа", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": "Очень легко"}, {"name": "Махи гантелей в сторону", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания на бицепс обратным хватом", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}]}, {"week": 11, "title": "11 НЕДЕЛЯ · Ты в одном шаге", "days": [{"day": "Пн", "title": "11 Неделя · Понедельник (Пиковая проходка 95%)", "items": [{"name": "Приседания (или Разгибание бедра)", "exId": "squat", "blocks": [{"pct": 60, "reps": 8, "sets": 3}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 60, "reps": 6, "sets": 1}, {"pct": 70, "reps": 5, "sets": 1}, {"pct": 80, "reps": 4, "sets": 1}, {"pct": 85, "reps": 3, "sets": 1}, {"pct": 90, "reps": 3, "sets": 1}, {"pct": 92.5, "reps": 3, "sets": 1}, {"pct": 95, "reps": 3, "sets": 1}], "isBase": true, "note": "Если грядут соревнования — разбираем штангу и берем 13 дней на полное восстановление ЦНС"}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Разгибания на трицепс в блоке", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 15, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "11 Неделя · Среда", "items": [{"name": "Тяга становая", "exId": "deadlift", "blocks": [{"pct": 60, "reps": 6, "sets": 5}], "isBase": true, "note": ""}, {"name": "Вертикальная тяга + Горизонтальная тяга (Суперсет)", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}, {"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": "Суперсет"}, {"name": "Тяга Т-грифа", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Гиперэкстензия с весом", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": "С весом 10 кг"}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "11 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 75, "reps": 5, "sets": 5}, {"pct": 80, "reps": 2, "sets": 4}], "isBase": true, "note": ""}, {"name": "Жим штанги сидя", "exId": "ohp", "blocks": [{"pct": 35, "reps": 6, "sets": 4}], "isBase": true, "note": ""}, {"name": "Махи гантелей в сторону", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания на бицепс обратным хватом", "exId": null, "blocks": [{"pct": 0, "reps": 12, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания кисти", "exId": null, "blocks": [{"pct": 0, "reps": 15, "sets": 4}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}]}, {"week": 12, "title": "12 НЕДЕЛЯ · Шлифовка результата", "days": [{"day": "Пн", "title": "12 Неделя · Понедельник", "items": [{"name": "Приседания (или Разгибание бедра)", "exId": "squat", "blocks": [{"pct": 70, "reps": 5, "sets": 4}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 4, "sets": 2}, {"pct": 80, "reps": 3, "sets": 1}, {"pct": 82.5, "reps": 2, "sets": 3}], "isBase": true, "note": "Подводка к рекорду"}, {"name": "Разгибания на трицепс в блоке", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 15, "sets": 4}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "12 Неделя · Среда", "items": [{"name": "Гиперэкстензия с весом", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 3}], "isBase": false, "note": "С весом 20 кг"}, {"name": "Вертикальная тяга + Горизонтальная тяга (Суперсет)", "exId": null, "blocks": [{"pct": 0, "reps": 15, "sets": 3}, {"pct": 0, "reps": 15, "sets": 3}], "isBase": false, "note": "Легкий тонус"}, {"name": "Сгибания на бицепс «молотки»", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}, {"name": "Сгибания кисти", "exId": null, "blocks": [{"pct": 0, "reps": 15, "sets": 4}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "12 Неделя · Пятница (Разгрузка перед проходкой)", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 4, "sets": 4}], "isBase": true, "note": "Последний легкий жим перед рекордом"}, {"name": "Медитация в зале", "exId": null, "blocks": [{"pct": 0, "reps": 1, "sets": 1}], "isBase": false, "note": "Тренировка духа и ментальный настрой на рекорд"}]}]}, {"week": 13, "title": "13 НЕДЕЛЯ · Добро пожаловать в Клуб 150 кг!", "days": [{"day": "Пн", "title": "13 Неделя · Понедельник (ДЕНЬ ПРОХОДКИ)", "items": [{"name": "Жим штанги лежа (Проходка на 1ПМ)", "exId": "bench", "blocks": [{"pct": 50, "reps": 6, "sets": 1}, {"pct": 60, "reps": 5, "sets": 1}, {"pct": 70, "reps": 3, "sets": 1}, {"pct": 80, "reps": 2, "sets": 1}, {"pct": 90, "reps": 1, "sets": 1}, {"pct": 100, "reps": 1, "sets": 1}, {"pct": 102, "reps": 1, "sets": 1}], "isBase": true, "note": "И так до потолка! Жмем на 1 раз, увеличивая вес. После — порадоваться и отметить!"}]}]}];
+
+    // ============================================================================
+    // 2. МАТЕМАТИКА ШТАНГИ, БЛИНОВ IPF, e1RM И DOTS
+    // ============================================================================
+    function roundToStep(rawWeight, step = 2.5, minWeight = 20) {
+      if (!rawWeight || isNaN(rawWeight)) return minWeight;
+      const rounded = Math.round(rawWeight / step) * step;
+      return Math.max(minWeight, Number(rounded.toFixed(2)));
+    }
+
+    function calculatePlatesPerSide(targetWeight, barbellWeight = 20) {
+      if (targetWeight <= barbellWeight) {
+        return { plates: [], perSideKg: 0 };
+      }
+      let remainingPerSide = Number(((targetWeight - barbellWeight) / 2).toFixed(3));
+      const plates = [];
+
+      for (const plate of PLATE_INVENTORY) {
+        while (remainingPerSide >= plate.weight - 0.001) {
+          plates.push(plate);
+          remainingPerSide = Number((remainingPerSide - plate.weight).toFixed(3));
+        }
+      }
+      return {
+        plates,
+        perSideKg: Number(((targetWeight - barbellWeight) / 2).toFixed(2)),
+      };
+    }
+
+    function calculateE1RM(weight, reps) {
+      if (!weight || !reps || reps <= 0) return 0;
+      if (reps === 1) return weight;
+      const epley = weight * (1 + reps / 30);
+      const brzycki = reps < 37 ? weight * (36 / (37 - reps)) : epley;
+      return Number(((epley + brzycki) / 2).toFixed(1));
+    }
+
+    function calculateDOTS(totalKg, bwKg) {
+      if (!totalKg || !bwKg || bwKg < 40) return 0;
+      const a = -0.000001093;
+      const b = 0.0007391293;
+      const c = -0.1918759221;
+      const d = 24.0900756;
+      const e = -307.75076;
+      const denom = a * Math.pow(bwKg, 4) + b * Math.pow(bwKg, 3) + c * Math.pow(bwKg, 2) + d * bwKg + e;
+      return denom > 0 ? Number(((totalKg * 500) / denom).toFixed(1)) : 0;
+    }
+
+    // Парсер твоего формата (% x Повторения x Подходы, например: 70x4x2; 77x3x5)
+    function parseCustomTextFormat(rawText, exercises) {
+      const lines = rawText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      const items = [];
+
+      lines.forEach((line, idx) => {
+        // Ищем все блоки вида 70x4x2 или 75х3х5
+        const blockRegex = /(\d+(?:[.,]\d+)?)\s*[xх×]\s*(\d+)\s*[xх×]\s*(\d+)/gi;
+        const matches = [...line.matchAll(blockRegex)];
+        if (matches.length === 0) return;
+
+        const cleanName = line.replace(blockRegex, '').replace(/[;:\-–]+/g, ' ').replace(/\s{2,}/g, ' ').trim() || `Упражнение #${idx + 1}`;
+        const lower = cleanName.toLowerCase();
+
+        let matchedEx = null;
+        let bestLen = 0;
+        for (const ex of exercises) {
+          for (const al of ex.aliases) {
+            if (lower.includes(al) && al.length > bestLen) {
+              matchedEx = ex;
+              bestLen = al.length;
+            }
+          }
+        }
+
+        const blocks = matches.map((m) => ({
+          pct: parseFloat(m[1].replace(',', '.')),
+          reps: parseInt(m[2], 10),
+          sets: parseInt(m[3], 10),
+        }));
+
+        items.push({
+          name: cleanName,
+          exId: matchedEx ? matchedEx.id : null,
+          blocks,
+          isBase: blocks.some((b) => b.pct > 0),
+          note: 'Импортировано из текста / PDF',
+        });
+      });
+
+      return items;
+    }
+
+    async function extractTextFromPdfArrayBuffer(arrayBuffer) {
+      if (!window.pdfjsLib) throw new Error('PDF.js не загружен');
+      const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let linesOut = [];
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        const rows = [];
+        for (const item of textContent.items) {
+          const str = item.str.trim();
+          if (!str) continue;
+          const x = item.transform[4];
+          const y = item.transform[5];
+          let row = rows.find((r) => Math.abs(r.y - y) < 5);
+          if (!row) {
+            row = { y, tokens: [] };
+            rows.push(row);
+          }
+          row.tokens.push({ x, str });
+        }
+        rows.sort((a, b) => b.y - a.y);
+        for (const r of rows) {
+          r.tokens.sort((a, b) => a.x - b.x);
+          linesOut.push(r.tokens.map((t) => t.str).join(' '));
+        }
+      }
+      return linesOut.join('\n');
+    }
+
+    // ============================================================================
+    // 3. PLATE LOADER VISUALIZER
+    // ============================================================================
+    function PlateLoaderVisualizer({ targetWeight, barbellWeight = 20, title }) {
+      const { plates, perSideKg } = useMemo(
+        () => calculatePlatesPerSide(targetWeight, barbellWeight),
+        [targetWeight, barbellWeight]
+      );
+
+      const groupedText = useMemo(() => {
+        if (plates.length === 0) return 'Пустой гриф (20 кг)';
+        return plates.map((p) => `[${p.label}]`).join(' + ');
+      }, [plates]);
+
+      return (
+        <div className="bg-surface border border-borderSubtle rounded-xl p-4 transition-all">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <div className="text-[11px] uppercase tracking-wider text-zinc-500 font-medium">
+                Plate Loader · Схема загрузки грифа
+              </div>
+              <div className="text-sm font-semibold text-zinc-100 mt-0.5">{title}</div>
+            </div>
+            <div className="text-right">
+              <div className="font-mono tabular text-2xl font-bold text-emerald-400">
+                {targetWeight} <span className="text-xs font-normal text-zinc-400">кг</span>
+              </div>
+              <div className="font-mono tabular text-[11px] text-zinc-400">
+                Гриф {barbellWeight} кг + по {perSideKg} кг / стор.
+              </div>
+            </div>
+          </div>
+
+          <div className="relative h-24 bg-[#0B0B0E] border border-zinc-800/80 rounded-lg flex items-center justify-center overflow-hidden px-4 my-2">
+            <div className="flex items-center">
+              <div className="w-16 h-2.5 bg-gradient-to-b from-zinc-400 via-zinc-500 to-zinc-700 rounded-l-sm" />
+              <div className="w-2.5 h-8 bg-zinc-300 border-x border-zinc-600 rounded-[1px]" />
+              <div className="relative flex items-center gap-[2px] pl-[2px] pr-8 min-w-[160px]">
+                <div className="absolute left-0 right-0 h-4 bg-gradient-to-b from-zinc-500 via-zinc-600 to-zinc-800 rounded-r-sm z-0" />
+                {plates.map((plate, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      height: `${plate.height}px`,
+                      width: `${plate.width + 6}px`,
+                      backgroundColor: plate.color,
+                      borderColor: plate.border,
+                    }}
+                    className="relative z-10 rounded-[2px] border flex items-center justify-center shadow-md"
+                  >
+                    <span
+                      style={{ color: plate.weight === 5 || plate.weight === 1.25 ? '#09090B' : '#FFFFFF' }}
+                      className="font-mono text-[8px] font-bold -rotate-90 select-none"
+                    >
+                      {plate.label}
+                    </span>
+                  </div>
+                ))}
+                {plates.length > 0 && (
+                  <div className="relative z-10 w-3 h-6 bg-zinc-300 border border-zinc-500 rounded-[2px] ml-0.5" />
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-zinc-800/70 text-xs">
+            <span className="text-zinc-500">На каждую сторону:</span>
+            <span className="font-mono tabular font-medium text-zinc-200">{groupedText}</span>
+          </div>
+        </div>
+      );
+    }
+
+    // ============================================================================
+    // 4. MAIN APPLICATION
+    // ============================================================================
+    function App() {
+      const [exercises, setExercises] = useState(() => {
+        try {
+          const saved = localStorage.getItem('ironcore_13w_exercises');
+          return saved ? JSON.parse(saved) : DEFAULT_EXERCISES;
+        } catch {
+          return DEFAULT_EXERCISES;
+        }
+      });
+
+      const [activeTab, setActiveTab] = useState('workout'); // 'workout' | '1rm' | 'nutrition' | 'analytics' | 'import'
+      const [selectedWeek, setSelectedWeek] = useState(1);
+      const [selectedDayIdx, setSelectedDayIdx] = useState(0);
+      const [readinessShift, setReadinessShift] = useState(0);
+      const [activePlateTarget, setActivePlateTarget] = useState(null);
+
+      const [completedSets, setCompletedSets] = useState(() => {
+        try {
+          const saved = localStorage.getItem('ironcore_13w_done');
+          return saved ? JSON.parse(saved) : {};
+        } catch {
+          return {};
+        }
+      });
+
+      const [mealTemplates, setMealTemplates] = useState(() => {
+        try {
+          const saved = localStorage.getItem('ironcore_13w_meals');
+          return saved ? JSON.parse(saved) : DEFAULT_MEAL_TEMPLATES;
+        } catch {
+          return DEFAULT_MEAL_TEMPLATES;
+        }
+      });
+
+      const [nutritionLog, setNutritionLog] = useState(() => {
+        try {
+          const saved = localStorage.getItem('ironcore_13w_nutrition');
+          return saved
+            ? JSON.parse(saved)
+            : { bodyweight: 82.0, dayType: 'workout', entries: [DEFAULT_MEAL_TEMPLATES[0]] };
+        } catch {
+          return { bodyweight: 82.0, dayType: 'workout', entries: [] };
+        }
+      });
+
+      // Custom Importer State
+      const [customImportText, setCustomImportText] = useState('Жим штанги лежа 75х3х5\nПриседания 60х8х4\nТяга становая 70х4х4');
+      const [customImportedItems, setCustomImportedItems] = useState([]);
+      const [pdfMsg, setPdfMsg] = useState('');
+
+      // Timer State
+      const [timerSec, setTimerSec] = useState(0);
+      const [timerRunning, setTimerRunning] = useState(false);
+
+      // e1RM Quick Calc
+      const [calcWeight, setCalcWeight] = useState(110);
+      const [calcReps, setCalcReps] = useState(4);
+
+      const fileInputRef = useRef(null);
+      const importJsonRef = useRef(null);
+
+      useEffect(() => { localStorage.setItem('ironcore_13w_exercises', JSON.stringify(exercises)); }, [exercises]);
+      useEffect(() => { localStorage.setItem('ironcore_13w_done', JSON.stringify(completedSets)); }, [completedSets]);
+      useEffect(() => { localStorage.setItem('ironcore_13w_meals', JSON.stringify(mealTemplates)); }, [mealTemplates]);
+      useEffect(() => { localStorage.setItem('ironcore_13w_nutrition', JSON.stringify(nutritionLog)); }, [nutritionLog]);
+
+      useEffect(() => {
+        if (!timerRunning) return;
+        const interval = setInterval(() => {
+          setTimerSec((prev) => {
+            if (prev <= 1) {
+              setTimerRunning(false);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+        return () => clearInterval(interval);
+      }, [timerRunning]);
+
+      const startAdaptiveTimer = (isBase) => {
+        setTimerSec(isBase ? 240 : 90); // 4 мин в базе, 1.5 мин в подсобке (как в твоем PDF!)
+        setTimerRunning(true);
+      };
+
+      const formatTime = (sec) => {
+        const m = Math.floor(sec / 60);
+        const s = sec % 60;
+        return `${m}:${s < 10 ? '0' : ''}${s}`;
+      };
+
+      const weekObj = useMemo(
+        () => BUILTIN_13_WEEKS.find((w) => w.week === selectedWeek) || BUILTIN_13_WEEKS[0],
+        [selectedWeek]
+      );
+
+      const dayObj = weekObj.days[selectedDayIdx] || weekObj.days[0];
+
+      // Вычисляем килограммы для каждого блока (% x Повторения x Подходы)
+      const computedDayItems = useMemo(() => {
+        return dayObj.items.map((item, itemIdx) => {
+          const ex = item.exId ? exercises.find((e) => e.id === item.exId) : null;
+          const computedBlocks = item.blocks.map((b, bIdx) => {
+            if (!ex || !b.pct || b.pct <= 0) {
+              return { ...b, effectivePct: 0, weightKg: null, blockKey: `w${selectedWeek}-d${selectedDayIdx}-i${itemIdx}-b${bIdx}` };
+            }
+            const effectivePct = Math.max(30, b.pct + readinessShift);
+            const rawKg = (ex.oneRepMax * effectivePct) / 100;
+            const weightKg = roundToStep(rawKg, ex.step, ex.barbellWeight);
+            return {
+              ...b,
+              effectivePct,
+              weightKg,
+              barbellWeight: ex.barbellWeight,
+              oneRepMax: ex.oneRepMax,
+              blockKey: `w${selectedWeek}-d${selectedDayIdx}-i${itemIdx}-b${bIdx}`,
+            };
+          });
+
+          return {
+            ...item,
+            exName: ex ? ex.name : item.name,
+            oneRepMax: ex ? ex.oneRepMax : null,
+            computedBlocks,
+          };
+        });
+      }, [dayObj, exercises, readinessShift, selectedWeek, selectedDayIdx]);
+
+      // Автоматически ставим в Plate Loader первый базовый подход дня
+      useEffect(() => {
+        for (const it of computedDayItems) {
+          const firstWeighted = it.computedBlocks.find((b) => b.weightKg !== null);
+          if (firstWeighted) {
+            setActivePlateTarget({
+              weight: firstWeighted.weightKg,
+              barbell: firstWeighted.barbellWeight || 20,
+              title: `${it.name} · ${firstWeighted.effectivePct}% × ${firstWeighted.reps} повт.`,
+            });
+            return;
+          }
+        }
+        setActivePlateTarget(null);
+      }, [computedDayItems]);
+
+      const handleUpdate1RM = (id, newVal) => {
+        const num = parseFloat(newVal);
+        setExercises((prev) =>
+          prev.map((ex) => {
+            if (ex.id !== id) return ex;
+            const cleanVal = isNaN(num) ? 0 : num;
+            const today = new Date().toISOString().slice(0, 10);
+            const updatedHistory = [...(ex.history || [])];
+            if (cleanVal > 0) {
+              const last = updatedHistory[updatedHistory.length - 1];
+              if (last && last.date === today) last.weight = cleanVal;
+              else updatedHistory.push({ date: today, weight: cleanVal });
+            }
+            return { ...ex, oneRepMax: cleanVal, history: updatedHistory };
+          })
+        );
+      };
+
+      const toggleSet = (setKey, isBase) => {
+        const nextVal = !completedSets[setKey];
+        setCompletedSets((prev) => ({ ...prev, [setKey]: nextVal }));
+        if (nextVal) startAdaptiveTimer(isBase);
+      };
+
+      const dayTonnage = useMemo(() => {
+        let sum = 0;
+        for (const it of computedDayItems) {
+          for (const b of it.computedBlocks) {
+            if (!b.weightKg) continue;
+            for (let s = 0; s < b.sets; s++) {
+              if (completedSets[`${b.blockKey}-s${s}`]) {
+                sum += b.weightKg * b.reps;
+              }
+            }
+          }
+        }
+        return Math.round(sum);
+      }, [computedDayItems, completedSets]);
+
+      const handlePdfUpload = async (file) => {
+        if (!file) return;
+        setPdfMsg('Читаем PDF...');
+        try {
+          const buf = await file.arrayBuffer();
+          const txt = await extractTextFromPdfArrayBuffer(buf);
+          setCustomImportText(txt);
+          setCustomImportedItems(parseCustomTextFormat(txt, exercises));
+          setPdfMsg(`Загружен: ${file.name}`);
+        } catch (e) {
+          setPdfMsg('Ошибка чтения PDF: ' + e.message);
+        }
+      };
+
+      const nutritionTotals = useMemo(() => {
+        return nutritionLog.entries.reduce(
+          (acc, m) => ({
+            kcal: acc.kcal + (Number(m.kcal) || 0),
+            p: acc.p + (Number(m.p) || 0),
+            f: acc.f + (Number(m.f) || 0),
+            c: acc.c + (Number(m.c) || 0),
+          }),
+          { kcal: 0, p: 0, f: 0, c: 0 }
+        );
+      }, [nutritionLog.entries]);
+
+      const targetKcal = nutritionLog.dayType === 'workout' ? 3200 : 2750;
+      const targetProtein = Math.round((nutritionLog.bodyweight || 80) * 2.0);
+
+      const sbdTotal = useMemo(() => {
+        const s = exercises.find((e) => e.id === 'squat')?.oneRepMax || 0;
+        const b = exercises.find((e) => e.id === 'bench')?.oneRepMax || 0;
+        const d = exercises.find((e) => e.id === 'deadlift')?.oneRepMax || 0;
+        return Number((s + b + d).toFixed(1));
+      }, [exercises]);
+
+      const dotsScore = useMemo(
+        () => calculateDOTS(sbdTotal, nutritionLog.bodyweight),
+        [sbdTotal, nutritionLog.bodyweight]
+      );
+
+      const handleExportBackup = () => {
+        const payload = { exercises, completedSets, mealTemplates, nutritionLog };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ironcore_13weeks_backup_${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      return (
+        <div className="max-w-5xl mx-auto px-4 pt-4 pb-28 sm:pt-8 sm:pb-12">
+          {/* ================= HEADER ================= */}
+          <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-borderSubtle">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-zinc-900 border border-zinc-700/80 flex items-center justify-center">
+                  <span className="font-mono font-bold text-sm text-emerald-400">150</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-base font-semibold tracking-tight text-zinc-100">IRON CORE</h1>
+                    <span className="px-1.5 py-0.5 text-[10px] font-mono uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">
+                      Клуб 150 кг · 13 недель
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-500">
+                    Формат (% × Повт × Подх) · Автоперевод в кг и блины IPF
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => (timerRunning ? setTimerRunning(false) : startAdaptiveTimer(true))}
+                className={`sm:hidden px-2.5 py-1.5 rounded-lg font-mono tabular text-xs border ${
+                  timerRunning
+                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                    : 'bg-surface border-borderSubtle text-zinc-400'
+                }`}
+              >
+                {timerRunning ? `⏱ ${formatTime(timerSec)}` : '⏱ 4:00'}
+              </button>
+            </div>
+
+            {/* Быстрый ввод твоих максимумов 1ПМ */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="grid grid-cols-4 gap-1.5 flex-1 sm:flex-initial">
+                {exercises.slice(0, 4).map((ex) => (
+                  <div
+                    key={ex.id}
+                    className="bg-surface border border-borderSubtle rounded-lg px-2 py-1 focus-within:border-zinc-500"
+                  >
+                    <div className="text-[10px] text-zinc-500 truncate">{ex.shortName}</div>
+                    <div className="flex items-baseline gap-0.5">
+                      <input
+                        type="number"
+                        step="2.5"
+                        value={ex.oneRepMax || ''}
+                        onChange={(e) => handleUpdate1RM(ex.id, e.target.value)}
+                        className="w-11 bg-transparent font-mono tabular text-xs font-semibold text-zinc-100 focus:outline-none"
+                      />
+                      <span className="text-[9px] text-zinc-500 font-mono">кг</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => (timerRunning ? setTimerRunning(false) : startAdaptiveTimer(true))}
+                className={`hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg font-mono tabular text-xs border ${
+                  timerRunning
+                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                    : 'bg-surface border-borderSubtle text-zinc-300 hover:border-zinc-600'
+                }`}
+              >
+                <span>{timerRunning ? `⏱ ${formatTime(timerSec)}` : '⏱ Таймер'}</span>
+              </button>
+
+              <button
+                onClick={handleExportBackup}
+                className="px-2.5 py-2 rounded-lg bg-surface border border-borderSubtle text-[11px] font-mono text-zinc-400 hover:text-zinc-100"
+              >
+                Бэкап ↓
+              </button>
+            </div>
+          </header>
+
+          {/* ================= DESKTOP TABS ================= */}
+          <nav className="hidden sm:flex items-center gap-1 my-5 p-1 bg-surface border border-borderSubtle rounded-xl w-fit">
+            {[
+              { id: 'workout', label: '1. Твоя программа (13 недель)' },
+              { id: '1rm', label: '2. База 1ПМ & e1RM' },
+              { id: 'nutrition', label: '3. КБЖУ & Вес тела' },
+              { id: 'import', label: '4. Загрузить новый PDF' },
+              { id: 'analytics', label: '5. Аналитика & DOTS' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  activeTab === tab.id
+                    ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/60'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+
+          {/* ================= TAB 1: ТВОЯ 13-НЕДЕЛЬНАЯ ПРОГРАММА ================= */}
+          {activeTab === 'workout' && (
+            <div className="space-y-4 mt-5">
+              {/* Селектор Недели (1..13) */}
+              <div className="bg-surface border border-borderSubtle rounded-xl p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-medium">
+                    Выбери неделю цикла (1–13):
+                  </span>
+                  <span className="text-xs font-semibold text-emerald-400">{weekObj.title}</span>
+                </div>
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                  {BUILTIN_13_WEEKS.map((w) => (
+                    <button
+                      key={w.week}
+                      onClick={() => {
+                        setSelectedWeek(w.week);
+                        setSelectedDayIdx(0);
+                      }}
+                      className={`px-3 py-1.5 rounded-lg font-mono tabular text-xs font-medium border shrink-0 transition-all ${
+                        selectedWeek === w.week
+                          ? 'bg-emerald-500 text-zinc-950 border-emerald-400 font-bold'
+                          : 'bg-[#0B0B0E] text-zinc-400 border-zinc-800 hover:text-zinc-200'
+                      }`}
+                    >
+                      Нед {w.week}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Левая колонка: День недели + Авторегуляция + Plate Loader */}
+                <div className="lg:col-span-5 space-y-4">
+                  {/* Выбор дня (Пн / Ср / Пт) */}
+                  <div className="bg-surface border border-borderSubtle rounded-xl p-4">
+                    <div className="text-xs font-semibold text-zinc-200 mb-2.5">Тренировочный день</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {weekObj.days.map((d, idx) => (
+                        <button
+                          key={d.day}
+                          onClick={() => setSelectedDayIdx(idx)}
+                          className={`py-2.5 px-3 rounded-lg text-xs font-semibold border transition-all ${
+                            selectedDayIdx === idx
+                              ? 'bg-zinc-100 text-zinc-950 border-zinc-100'
+                              : 'bg-[#0B0B0E] text-zinc-400 border-zinc-800 hover:text-zinc-200'
+                          }`}
+                        >
+                          {d.day}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Авторегуляция RPE */}
+                    <div className="mt-4 pt-3 border-t border-borderSubtle">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[11px] text-zinc-400">Авто-регуляция (по самочувствию):</span>
+                        <span className="font-mono tabular text-xs font-semibold text-emerald-400">
+                          {readinessShift > 0 ? `+${readinessShift}%` : `${readinessShift}%`}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {[
+                          { label: '-5%', val: -5 },
+                          { label: '-2.5%', val: -2.5 },
+                          { label: '0% План', val: 0 },
+                          { label: '+2.5%', val: 2.5 },
+                        ].map((opt) => (
+                          <button
+                            key={opt.val}
+                            onClick={() => setReadinessShift(opt.val)}
+                            className={`py-1.5 rounded-lg font-mono text-[11px] border ${
+                              readinessShift === opt.val
+                                ? 'bg-zinc-800 border-zinc-500 text-zinc-100'
+                                : 'bg-[#0C0C0F] border-zinc-800/80 text-zinc-500'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Визуализатор грифа с блинами */}
+                  {activePlateTarget && (
+                    <PlateLoaderVisualizer
+                      targetWeight={activePlateTarget.weight}
+                      barbellWeight={activePlateTarget.barbell}
+                      title={activePlateTarget.title}
+                    />
+                  )}
+                </div>
+
+                {/* Правая колонка: Список упражнений дня с переведенными килограммами */}
+                <div className="lg:col-span-7">
+                  <div className="bg-surface border border-borderSubtle rounded-xl overflow-hidden">
+                    <div className="px-4 py-3 border-b border-borderSubtle flex items-center justify-between">
+                      <div>
+                        <h2 className="text-sm font-semibold text-zinc-100">{dayObj.title}</h2>
+                        <p className="text-[11px] text-zinc-500">
+                          Запись в твоей программе: (% от 1ПМ) × (Повторения) × (Подходы)
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[10px] uppercase text-zinc-500">Тоннаж</div>
+                        <div className="font-mono tabular text-sm font-semibold text-emerald-400">
+                          {dayTonnage} кг
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="divide-y divide-borderSubtle">
+                      {computedDayItems.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className={`p-4 transition-colors ${
+                            item.isBase ? 'bg-emerald-950/10' : ''
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-mono text-xs text-zinc-500">{idx + 1}.</span>
+                                <span className="text-sm font-semibold text-zinc-100">{item.name}</span>
+                                {item.isBase && (
+                                  <span className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                    БАЗА · 1ПМ {item.oneRepMax} кг
+                                  </span>
+                                )}
+                              </div>
+                              {item.note && (
+                                <p className="text-[11px] text-zinc-400 mt-1">{item.note}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Блоки нагрузки (поддерживает волны вроде 70x4x2; 77x3x5 и пирамиды 13-й недели!) */}
+                          <div className="mt-3 space-y-2.5">
+                            {item.computedBlocks.map((b, bIdx) => (
+                              <div
+                                key={bIdx}
+                                onClick={() =>
+                                  b.weightKg &&
+                                  setActivePlateTarget({
+                                    weight: b.weightKg,
+                                    barbell: b.barbellWeight || 20,
+                                    title: `${item.name} · ${b.effectivePct}% × ${b.reps} повт.`,
+                                  })
+                                }
+                                className={`p-2.5 rounded-lg bg-[#0B0B0E] border border-zinc-800/90 ${
+                                  b.weightKg ? 'cursor-pointer hover:border-zinc-600' : ''
+                                }`}
+                              >
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    {b.weightKg ? (
+                                      <>
+                                        <span className="font-mono tabular text-sm font-bold text-emerald-400">
+                                          {b.weightKg} кг
+                                        </span>
+                                        <span className="font-mono tabular text-[11px] text-zinc-400">
+                                          ({b.effectivePct}% × {b.reps} повт. × {b.sets} подх.)
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span className="font-mono tabular text-xs text-zinc-300">
+                                        Подсобка: {b.reps} повт. × {b.sets} подх. (вес свой)
+                                      </span>
+                                    )}
+                                  </div>
+                                  {b.weightKg && (
+                                    <span className="text-[10px] font-mono text-zinc-500">Блины →</span>
+                                  )}
+                                </div>
+
+                                {/* Кнопки подходов */}
+                                <div className="flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                  {Array.from({ length: b.sets }).map((_, sIdx) => {
+                                    const setKey = `${b.blockKey}-s${sIdx}`;
+                                    const done = !!completedSets[setKey];
+                                    return (
+                                      <button
+                                        key={sIdx}
+                                        onClick={() => toggleSet(setKey, item.isBase)}
+                                        className={`h-9 min-w-[64px] px-2.5 rounded-md font-mono tabular text-xs font-medium border flex items-center justify-center gap-1 transition-all active:scale-95 ${
+                                          done
+                                            ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                                            : 'bg-surface border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                                        }`}
+                                      >
+                                        <span>#{sIdx + 1}</span>
+                                        <span>·</span>
+                                        <span>{b.reps}</span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= TAB 2: БАЗА 1ПМ & e1RM ================= */}
+          {activeTab === '1rm' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-5">
+              <div className="lg:col-span-7 bg-surface border border-borderSubtle rounded-xl p-5">
+                <h2 className="text-sm font-semibold text-zinc-100">Твои 1ПМ для всех базовых движений программы</h2>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Впиши свои актуальные максимумы — все 13 недель программы мгновенно пересчитаются в килограммы.
+                </p>
+
+                <div className="mt-4 space-y-3">
+                  {exercises.map((ex) => (
+                    <div
+                      key={ex.id}
+                      className="flex items-center justify-between p-3.5 rounded-xl bg-[#0B0B0E] border border-zinc-800/90"
+                    >
+                      <div>
+                        <div className="text-sm font-medium text-zinc-100">{ex.name}</div>
+                        <div className="text-[11px] font-mono text-zinc-500">
+                          Гриф {ex.barbellWeight} кг · Шаг блинов {ex.step} кг
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleUpdate1RM(ex.id, ex.oneRepMax - 2.5)}
+                          className="w-9 h-9 rounded-lg bg-zinc-900 border border-zinc-700 font-mono text-xs text-zinc-300 hover:bg-zinc-800"
+                        >
+                          -2.5
+                        </button>
+                        <div className="flex items-baseline bg-surface border border-zinc-700 rounded-lg px-3 py-1.5">
+                          <input
+                            type="number"
+                            step="2.5"
+                            value={ex.oneRepMax || ''}
+                            onChange={(e) => handleUpdate1RM(ex.id, e.target.value)}
+                            className="w-16 text-center bg-transparent font-mono tabular text-base font-bold text-emerald-400 focus:outline-none"
+                          />
+                          <span className="text-xs text-zinc-500 font-mono">кг</span>
+                        </div>
+                        <button
+                          onClick={() => handleUpdate1RM(ex.id, ex.oneRepMax + 2.5)}
+                          className="w-9 h-9 rounded-lg bg-zinc-900 border border-zinc-700 font-mono text-xs text-zinc-300 hover:bg-zinc-800"
+                        >
+                          +2.5
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="lg:col-span-5 bg-surface border border-borderSubtle rounded-xl p-5 h-fit">
+                <h3 className="text-sm font-semibold text-zinc-100">Калькулятор e1RM (Эпли / Бжицки)</h3>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Оценка твоего разового максимума по рабочему подходу (например, 110 кг на 4 раза).
+                </p>
+
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <div className="bg-[#0B0B0E] border border-zinc-800 rounded-lg p-3">
+                    <label className="text-[11px] text-zinc-500 block">Вес (кг)</label>
+                    <input
+                      type="number"
+                      step="2.5"
+                      value={calcWeight}
+                      onChange={(e) => setCalcWeight(parseFloat(e.target.value) || 0)}
+                      className="w-full mt-1 bg-transparent font-mono tabular text-lg font-bold text-zinc-100 focus:outline-none"
+                    />
+                  </div>
+                  <div className="bg-[#0B0B0E] border border-zinc-800 rounded-lg p-3">
+                    <label className="text-[11px] text-zinc-500 block">Повторения</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={calcReps}
+                      onChange={(e) => setCalcReps(parseInt(e.target.value, 10) || 1)}
+                      className="w-full mt-1 bg-transparent font-mono tabular text-lg font-bold text-zinc-100 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4 p-4 rounded-xl bg-[#0B0B0E] border border-emerald-500/20 flex items-center justify-between">
+                  <span className="text-xs text-zinc-400">Расчетный 1ПМ:</span>
+                  <span className="font-mono tabular text-2xl font-bold text-emerald-400">
+                    {calculateE1RM(calcWeight, calcReps)} кг
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= TAB 3: КБЖУ & ВЕС ТЕЛА ================= */}
+          {activeTab === 'nutrition' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-5">
+              <div className="lg:col-span-5 space-y-4">
+                <div className="bg-surface border border-borderSubtle rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-semibold text-zinc-200">Утренний вес и режим дня</span>
+                    <div className="flex items-baseline gap-1 bg-[#0B0B0E] border border-zinc-800 rounded-lg px-2.5 py-1">
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={nutritionLog.bodyweight}
+                        onChange={(e) =>
+                          setNutritionLog((prev) => ({ ...prev, bodyweight: parseFloat(e.target.value) || 0 }))
+                        }
+                        className="w-12 bg-transparent font-mono tabular text-sm font-bold text-zinc-100 text-right focus:outline-none"
+                      />
+                      <span className="text-[11px] font-mono text-zinc-500">кг</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setNutritionLog((p) => ({ ...p, dayType: 'workout' }))}
+                      className={`py-2 px-3 rounded-lg text-xs font-medium border ${
+                        nutritionLog.dayType === 'workout'
+                          ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                          : 'bg-[#0B0B0E] border-zinc-800 text-zinc-400'
+                      }`}
+                    >
+                      Тренировочный (3200)
+                    </button>
+                    <button
+                      onClick={() => setNutritionLog((p) => ({ ...p, dayType: 'rest' }))}
+                      className={`py-2 px-3 rounded-lg text-xs font-medium border ${
+                        nutritionLog.dayType === 'rest'
+                          ? 'bg-zinc-800 border-zinc-600 text-zinc-100'
+                          : 'bg-[#0B0B0E] border-zinc-800 text-zinc-400'
+                      }`}
+                    >
+                      День отдыха (2750)
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-surface border border-borderSubtle rounded-xl p-4">
+                  <div className="text-xs font-semibold text-zinc-200 mb-3">Шаблоны питания в 1 тап</div>
+                  <div className="space-y-2">
+                    {mealTemplates.map((meal) => (
+                      <button
+                        key={meal.id}
+                        onClick={() =>
+                          setNutritionLog((prev) => ({
+                            ...prev,
+                            entries: [...prev.entries, { ...meal, uid: Date.now() + Math.random() }],
+                          }))
+                        }
+                        className="w-full text-left p-3 rounded-lg bg-[#0B0B0E] hover:bg-zinc-900 border border-zinc-800/90 flex items-center justify-between transition-colors"
+                      >
+                        <div>
+                          <div className="text-xs font-medium text-zinc-200">{meal.name}</div>
+                          <div className="font-mono tabular text-[10px] text-zinc-500 mt-0.5">
+                            Б: {meal.p}г · Ж: {meal.f}г · У: {meal.c}г
+                          </div>
+                        </div>
+                        <span className="font-mono tabular text-xs font-semibold text-emerald-400">
+                          +{meal.kcal} ккал
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-7">
+                <div className="bg-surface border border-borderSubtle rounded-xl p-5">
+                  <div className="flex items-baseline justify-between mb-4">
+                    <div>
+                      <div className="text-xs text-zinc-500">Сводка КБЖУ за сегодня</div>
+                      <div className="font-mono tabular text-2xl font-bold text-zinc-100 mt-0.5">
+                        {nutritionTotals.kcal}{' '}
+                        <span className="text-sm font-normal text-zinc-500">/ {targetKcal} ккал</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setNutritionLog((p) => ({ ...p, entries: [] }))}
+                      className="text-[11px] text-zinc-500 hover:text-zinc-300 underline"
+                    >
+                      Очистить день
+                    </button>
+                  </div>
+
+                  <div className="w-full h-2.5 bg-[#0B0B0E] rounded-full overflow-hidden border border-zinc-800 mb-5">
+                    <div
+                      style={{ width: `${Math.min(100, (nutritionTotals.kcal / targetKcal) * 100)}%` }}
+                      className="h-full bg-emerald-500 transition-all duration-300"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="p-3 rounded-xl bg-[#0B0B0E] border border-zinc-800">
+                      <div className="text-[11px] text-zinc-500">Белки</div>
+                      <div className="font-mono tabular text-base font-bold text-zinc-100 mt-0.5">
+                        {Math.round(nutritionTotals.p)} / {targetProtein} г
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-[#0B0B0E] border border-zinc-800">
+                      <div className="text-[11px] text-zinc-500">Жиры</div>
+                      <div className="font-mono tabular text-base font-bold text-zinc-100 mt-0.5">
+                        {Math.round(nutritionTotals.f)} г
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-[#0B0B0E] border border-zinc-800">
+                      <div className="text-[11px] text-zinc-500">Углеводы</div>
+                      <div className="font-mono tabular text-base font-bold text-zinc-100 mt-0.5">
+                        {Math.round(nutritionTotals.c)} г
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 pt-4 border-t border-borderSubtle space-y-1.5">
+                    <div className="text-xs font-medium text-zinc-400 mb-2">Съедено сегодня:</div>
+                    {nutritionLog.entries.map((item, idx) => (
+                      <div
+                        key={item.uid || idx}
+                        className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#0B0B0E] border border-zinc-800/80 text-xs"
+                      >
+                        <span className="text-zinc-200">{item.name}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono tabular text-zinc-400">{item.kcal} ккал</span>
+                          <button
+                            onClick={() =>
+                              setNutritionLog((p) => ({
+                                ...p,
+                                entries: p.entries.filter((_, i) => i !== idx),
+                              }))
+                            }
+                            className="text-zinc-500 hover:text-red-400 font-mono"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= TAB 4: ЗАГРУЗИТЬ НОВЫЙ PDF / ТЕКСТ ================= */}
+          {activeTab === 'import' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-5">
+              <div className="lg:col-span-5 bg-surface border border-borderSubtle rounded-xl p-4 space-y-3">
+                <div className="text-xs font-semibold text-zinc-200">
+                  Парсер новых программ в твоем формате (% × Повт × Подх)
+                </div>
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border border-dashed border-zinc-700 hover:border-emerald-500/60 bg-[#0C0C0F] rounded-lg p-4 text-center cursor-pointer"
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    onChange={(e) => handlePdfUpload(e.target.files?.[0])}
+                  />
+                  <div className="text-xs text-zinc-300 font-medium">Выбрать PDF-файл</div>
+                  {pdfMsg && <div className="text-[11px] text-emerald-400 mt-1 font-mono">{pdfMsg}</div>}
+                </div>
+
+                <textarea
+                  rows={7}
+                  value={customImportText}
+                  onChange={(e) => setCustomImportText(e.target.value)}
+                  className="w-full bg-[#0B0B0E] border border-zinc-800 rounded-lg p-3 font-mono text-xs text-zinc-200"
+                />
+                <button
+                  onClick={() => setCustomImportedItems(parseCustomTextFormat(customImportText, exercises))}
+                  className="w-full py-2.5 rounded-lg bg-emerald-500 text-zinc-950 text-xs font-bold hover:bg-emerald-400"
+                >
+                  Пересчитать в килограммы
+                </button>
+              </div>
+
+              <div className="lg:col-span-7 bg-surface border border-borderSubtle rounded-xl p-4">
+                <div className="text-xs font-semibold text-zinc-200 mb-3">Результат распознавания</div>
+                {customImportedItems.length === 0 ? (
+                  <p className="text-xs text-zinc-500">Нажми «Пересчитать в килограммы» или загрузи PDF слева.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {customImportedItems.map((it, i) => {
+                      const ex = it.exId ? exercises.find((e) => e.id === it.exId) : null;
+                      return (
+                        <div key={i} className="p-3 rounded-lg bg-[#0B0B0E] border border-zinc-800">
+                          <div className="text-sm font-semibold text-zinc-100">{it.name}</div>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {it.blocks.map((b, bi) => {
+                              const kg = ex && b.pct > 0 ? roundToStep((ex.oneRepMax * b.pct) / 100, ex.step, ex.barbellWeight) : null;
+                              return (
+                                <span key={bi} className="px-2.5 py-1 rounded bg-surface border border-zinc-700 font-mono text-xs text-emerald-400">
+                                  {kg ? `${kg} кг (${b.pct}% × ${b.reps} × ${b.sets})` : `${b.reps} × ${b.sets}`}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ================= TAB 5: ANALYTICS & DOTS ================= */}
+          {activeTab === 'analytics' && (
+            <div className="mt-5 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-surface border border-borderSubtle rounded-xl p-4">
+                  <div className="text-[11px] uppercase text-zinc-500">Сумма троеборья (SBD)</div>
+                  <div className="font-mono tabular text-2xl font-bold text-zinc-100 mt-1">{sbdTotal} кг</div>
+                </div>
+                <div className="bg-surface border border-borderSubtle rounded-xl p-4">
+                  <div className="text-[11px] uppercase text-zinc-500">Коэффициент DOTS (IPF)</div>
+                  <div className="font-mono tabular text-2xl font-bold text-emerald-400 mt-1">{dotsScore}</div>
+                </div>
+                <div className="bg-surface border border-borderSubtle rounded-xl p-4">
+                  <div className="text-[11px] uppercase text-zinc-500">Резервная копия</div>
+                  <button
+                    onClick={handleExportBackup}
+                    className="mt-2 px-3 py-1.5 rounded-lg bg-zinc-100 text-zinc-950 text-xs font-semibold"
+                  >
+                    Скачать JSON-файл
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= MOBILE BOTTOM BAR ================= */}
+          <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-[#09090B]/95 backdrop-blur-lg border-t border-borderSubtle px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-50">
+            <div className="grid grid-cols-4 gap-1">
+              {[
+                { id: 'workout', label: '13 Недель' },
+                { id: '1rm', label: 'База 1ПМ' },
+                { id: 'nutrition', label: 'КБЖУ' },
+                { id: 'import', label: '+ PDF' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-2.5 rounded-xl text-[11px] font-medium transition-colors ${
+                    activeTab === tab.id ? 'bg-zinc-800 text-zinc-100 font-semibold' : 'text-zinc-500'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </nav>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
