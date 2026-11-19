@@ -1,7 +1,7 @@
 {
-  "name": "IRON CORE // Путь до 100 кг",
+  "name": "IRON CORE // Мульти-Программы",
   "short_name": "IRON CORE",
-  "description": "Персональное приложение для силовых тренировок (13 недель до 100 кг) и ПП-рецептов",
+  "description": "Персональное приложение для силовых программ, расчёта весов от 1ПМ и ПП-рецептов",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#000000",

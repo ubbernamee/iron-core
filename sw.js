@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ironcore-native-v7';
+const CACHE_NAME = 'ironcore-native-v10';
 const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', (e) => {
