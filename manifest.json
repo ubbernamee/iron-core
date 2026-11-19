@@ -1,11 +1,11 @@
 {
-  "name": "IRON CORE // Мульти-Программы",
+  "name": "IRON CORE // Cobalt Motion OS",
   "short_name": "IRON CORE",
   "description": "Персональное приложение для силовых программ, расчёта весов от 1ПМ и ПП-рецептов",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#0B111E",
+  "theme_color": "#0B111E",
   "orientation": "portrait",
   "icons": [
     {
