@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="IRON CORE" />
+  <meta name="theme-color" content="#09090B" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20512%20512%22%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22112%22%20fill%3D%22%2309090B%22/%3E%3Crect%20x%3D%2224%22%20y%3D%2224%22%20width%3D%22464%22%20height%3D%22464%22%20rx%3D%2292%22%20fill%3D%22none%22%20stroke%3D%22%2310B981%22%20stroke-width%3D%2212%22/%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2254%25%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20font-family%3D%22monospace%22%20font-weight%3D%22700%22%20font-size%3D%22180%22%20fill%3D%22%2310B981%22%3E100%3C/text%3E%3C/svg%3E" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20512%20512%22%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22112%22%20fill%3D%22%2309090B%22/%3E%3Crect%20x%3D%2224%22%20y%3D%2224%22%20width%3D%22464%22%20height%3D%22464%22%20rx%3D%2292%22%20fill%3D%22none%22%20stroke%3D%22%2310B981%22%20stroke-width%3D%2212%22/%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2254%25%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20font-family%3D%22monospace%22%20font-weight%3D%22700%22%20font-size%3D%22180%22%20fill%3D%22%2310B981%22%3E100%3C/text%3E%3C/svg%3E" />
+  <link rel="manifest" href="./manifest.json" />
+  <title>IRON CORE // iOS Native Strength & ПП OS</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            bg: '#09090B',
+            surface: '#111114',
+            surfaceHover: '#18181C',
+            borderSubtle: '#222228',
+          }
+        }
+      }
+    };
+  </script>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+    body {
+      background-color: #09090B;
+      color: #FAFAFA;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding-bottom: calc(9.5rem + env(safe-area-inset-bottom));
+      overscroll-behavior-y: none;
+    }
+    .tabular { font-variant-numeric: tabular-nums; }
+    .bg-grid {
+      background-size: 32px 32px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    }
+    .ios-tab-bar {
+      background: rgba(14, 14, 18, 0.78);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .ios-glass-card {
+      background: rgba(20, 20, 25, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    @keyframes sheetSlideUp {
+      from { transform: translateY(100%); opacity: 0.6; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .animate-sheet-up {
+      animation: sheetSlideUp 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #27272A; border-radius: 9999px; }
+  </style>
+
+  <script>
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+  </script>
+</head>
+<body class="bg-bg bg-grid min-h-screen antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
+  <!-- Скрытый iOS 18+ Safari Switch для нативного тактильного отклика (Haptics) -->
+  <label id="ios-haptic-label" aria-hidden="true" style="position:fixed;left:-9999px;top:-9999px;opacity:0;pointer-events:none;">
+    <input id="ios-haptic-switch" type="checkbox" switch />
+  </label>
+
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    // ============================================================================
+    // 0. NATIVE iOS 18+ HAPTICS ENGINE (<input type="checkbox" switch>)
+    // ============================================================================
+    function triggerHaptic() {
+      try {
+        const lbl = document.getElementById('ios-haptic-label');
+        const sw = document.getElementById('ios-haptic-switch');
+        if (lbl) {
+          lbl.click();
+        } else if (sw) {
+          sw.checked = !sw.checked;
+        }
+        if (navigator.vibrate) {
+          navigator.vibrate(10);
+        }
+      } catch {}
+    }
+
+    // ============================================================================
+    // 1. БАЗА 1ПМ: СТРОГО 3 ОСНОВНЫХ ДВИЖЕНИЯ (Жим, Присед, Становая)
+    // ============================================================================
+    const DEFAULT_EXERCISES = [
+      {
+        id: 'bench',
+        name: 'Жим штанги лежа',
+        shortName: 'Жим лежа',
+        oneRepMax: 90,
+        barbellWeight: 20,
+        step: 2.5,
+        history: [{ date: '2026-11-19', weight: 90 }],
+      },
+      {
+        id: 'squat',
+        name: 'Приседания со штангой',
+        shortName: 'Присед',
+        oneRepMax: 110,
+        barbellWeight: 20,
+        step: 2.5,
+        history: [{ date: '2026-11-19', weight: 110 }],
+      },
+      {
+        id: 'deadlift',
+        name: 'Становая / Мертвая тяга',
+        shortName: 'Становая',
+        oneRepMax: 130,
+        barbellWeight: 20,
+        step: 2.5,
+        history: [{ date: '2026-11-19', weight: 130 }],
+      },
+    ];
+
+    const DEFAULT_MEAL_TEMPLATES = [{"id": "tg5", "category": "Завтрак", "name": "Ленивая овсянка с вишней и зернёным творогом", "kcal": 449, "p": 30, "f": 14, "c": 46, "portionNote": "На 1 порцию", "video": "video_files/IMG_0676.MP4", "ingredients": "Овсяные хлопья — 40 г, греческий йогурт 2% — 100 г, творог зернёный 5% — 130 г, молоко — 30 мл, семена чиа — 5 г, вишня замороженная — 80 г, мёд — 10 г.", "steps": "Выложить овсянку, йогурт, творог и семена чиа в контейнер, залить молоком. Добавить вишню и мёд, перемешать, закрыть крышкой и убрать в холодильник на ночь."}, {"id": "tg6", "category": "Завтрак", "name": "Нежная творожно-йогуртовая запеканка с вишней", "kcal": 264, "p": 24, "f": 9, "c": 20, "portionNote": "На всю порцию", "video": "video_files/IMG_0681.MP4", "ingredients": "Греческий йогурт — 230 г, яйцо — 1 шт., кукурузный крахмал — 10 г, сахзам по вкусу, замороженная вишня — 25–30 г.", "steps": "Перемешать йогурт, яйцо, крахмал и сахзам. Выложить сверху вишню и запекать в духовке 20–25 минут при 180 °C."}, {"id": "tg8", "category": "Завтрак", "name": "Овсяноблин «Сникерс» с карамелью и арахисом", "kcal": 425, "p": 42, "f": 6, "c": 48, "portionNote": "На 1 порцию", "video": "video_files/IMG_0684.MP4", "ingredients": "Блин: овсяные хлопья 50 г, яичный белок 100 г (3 шт.), кефир 1% 60 мл, какао 10 г, разрыхлитель, соль, подсластитель. Крем: мягкий творог 0.1% 120 г, протеиновый карамельный пудинг 50 г, арахисовая паста 10 г, солёная карамель 10 г.", "steps": "Смешать ингредиенты для блина и обжарить с двух сторон. Промазать кремом из мягкого творога и пудинга, добавить арахисовую пасту и карамель."}, {"id": "tg9", "category": "Десерты", "name": "ПП Наполеон на тесте фило (порция ~370 г)", "kcal": 370, "p": 37, "f": 11, "c": 44, "portionNote": "100 ккал / 100 г (Б 10 / Ж 3 / У 12)", "video": "video_files/IMG_0687.MP4", "ingredients": "Карамельный протеиновый пудинг Hype — 200 г, мягкий творог 6% — 120 г, тесто фило — 50–100 г, ягоды/фрукты по желанию.", "steps": "Подрумянить листы теста фило в духовке 5–10 минут при 180 °C. Смешать пудинг с мягким творогом, прослоить коржи и украсить ягодами."}, {"id": "tg14", "category": "Десерты", "name": "Шоколадно-грушевый ПП чизкейк (весь торт ~650 г)", "kcal": 652, "p": 39, "f": 20, "c": 79, "portionNote": "Весь торт (~100 ккал / 100 г)", "video": "video_files/IMG_0689.MP4", "ingredients": "Грушевое пюре — 250 г, греческий йогурт 2% — 250 г, яйца — 2 шт., кукурузный крахмал — 30 г, какао — 20 г, сахзам. Глазурь: тёмный шоколад б/с — 15 г, молоко 1.5% — 10 мл.", "steps": "Смешать основу венчиком, перелить в форму (12.5×7 см) и выпекать 50 минут при 180 °C. Остудить, убрать в холодильник на ночь, перед подачей полить растопленным шоколадом с молоком."}, {"id": "tg13", "category": "Выпечка", "name": "Крабовые пирожки с сыром (63 г белка)", "kcal": 674, "p": 63, "f": 34, "c": 23, "portionNote": "На всю порцию", "video": "video_files/IMG_0692.MP4", "ingredients": "Крабовые палочки — 200 г, сыр лёгкий — 100 г, яйцо варёное — 2 шт., яйцо сырое — 1 шт.", "steps": "Мелко нарезать крабовые палочки, натереть варёные яйца и сыр. Добавить сырое яйцо, перемешать, слепить пирожки и запекать 15–20 минут при 180 °C."}, {"id": "tg12", "category": "Салаты", "name": "Лёгкий крабовый салат с сыром и томатами (~425 г)", "kcal": 336, "p": 32, "f": 14, "c": 20, "portionNote": "Вся миска (79 ккал / 100 г)", "video": "video_files/IMG_0694.MP4", "ingredients": "Варёное яйцо — 1 шт., крабовые палочки — 100 г, помидоры — 100 г, сладкий перец — 100 г, лёгкий сыр — 40 г, сметана 10% — 30 г.", "steps": "Нарезать все ингредиенты кубиком и заправить сметаной 10% или лёгким майонезом."}, {"id": "tg18", "category": "Салаты", "name": "Белковый салат с копчёной грудкой и корейской морковью", "kcal": 328, "p": 40, "f": 10, "c": 20, "portionNote": "На 1 порцию (из 2)", "video": "video_files/IMG_0704.MP4", "ingredients": "На 2 порции: копчёная куриная грудка без кожи — 250 г, морковь по-корейски без масла — 250 г, кукуруза — 80 г, варёное яйцо — 2 шт., греческий йогурт — 60 г, красный лук, листовой салат, соль.", "steps": "Нарезать грудку, яйца и зелень, добавить морковь по-корейски и кукурузу, заправить греческим йогуртом."}, {"id": "tg15", "category": "Обед", "name": "Запеканка с куриным филе, картофелем и сырной шапкой (1/2 формы)", "kcal": 680, "p": 58, "f": 26, "c": 52, "portionNote": "Половина формы (~550 г)", "video": "video_files/IMG_0696.MP4", "ingredients": "На форму: куриное филе — 450 г, картофель — 4–5 шт., лук — 1 шт., помидоры — 2 шт., сметана — 150 мл, сыр твёрдый — 100 г, масло — 1 ст. л., паприка, чеснок, соль.", "steps": "Выложить слоями лук и картофель, сверху куриное филе в специях. Запекать под фольгой 20–25 мин при 200 °C, затем залить смесью помидоров, сметаны и сыра и запечь ещё 10–15 мин."}, {"id": "tg16", "category": "Обед", "name": "Картофельная запеканка с куриной ветчиной и моцареллой", "kcal": 423, "p": 35, "f": 19, "c": 26, "portionNote": "На 1 порцию", "video": "video_files/IMG_0699.MP4", "ingredients": "Отварной картофель — 150 г, нежирная куриная ветчина — 50 г, яйца — 2 шт., красный лук, сыр моцарелла — 25 г, соль и специи.", "steps": "Размять картофель вилкой, смешать с яйцами, ветчиной, луком и половиной сыра. Посыпать оставшейся моцареллой и запекать 20 минут при 200 °C."}, {"id": "tg19", "category": "Обед", "name": "Паста с креветками, песто, мягким творогом и пармезаном (1/2 рецепта)", "kcal": 634, "p": 65, "f": 18, "c": 53, "portionNote": "Половина блюда (65 г белка)", "video": "video_files/IMG_0706.MP4", "ingredients": "На 2 порции: креветки — 500 г, мягкий творог — 120 г, шпинат, томаты черри — 100 г, соус песто — 1 ч. л., макароны (сух.) — 120 г, пармезан — 50 г, соль, перец.", "steps": "Запечь креветки, творог, шпинат, черри и песто 15 минут при 180 °C. Перемешать с отваренными макаронами и пармезаном, вернуть в духовку на 3–5 минут."}, {"id": "tg20", "category": "Обед", "name": "Боул с рисом, креветками, авокадо и йогуртовым соусом", "kcal": 523, "p": 24, "f": 12, "c": 74, "portionNote": "На 1 порцию", "video": "video_files/IMG_0708.MP4", "ingredients": "Рис сухой — 50 г, авокадо — 50 г, креветки — 70 г, кукуруза — 100 г, огурец — 1 шт. Соус: греческий йогурт — 50 г, соевый соус — 15 г.", "steps": "Отварить рис, выложить в глубокую тарелку, добавить креветки, авокадо, кукурузу и огурец. Полить соусом из йогурта и соевого соуса."}, {"id": "tg17", "category": "Ужин", "name": "Фаршированные перцы с куриной грудкой и моцареллой", "kcal": 560, "p": 76, "f": 18, "c": 16, "portionNote": "На всю порцию (76 г белка)", "video": "video_files/IMG_0701.MP4", "ingredients": "Куриная грудка — 400 г, мини-моцарелла — 1 упаковка (~100 г), яйцо — 1 шт., сладкий перец, петрушка/зелень, соевый соус, специи.", "steps": "Нафаршировать половинки сладкого перца рубленой куриной грудкой с яйцом, зеленью и моцареллой. Запекать под фольгой 40 мин при 210 °C, затем ещё 10 мин без фольги."}, {"id": "tg21", "category": "Ужин", "name": "Ленивые роллы с тунцом и рикоттой (60 г белка)", "kcal": 545, "p": 60, "f": 14, "c": 46, "portionNote": "На 1 порцию (60 г белка)", "video": "video_files/aaa7ba58c70545cba2014d1803e97d99.mp4", "ingredients": "Рис (в пакетиках, сух.) — 62 г, тунец — 135 г, рикотта — 75 г, мягкий творог Савушкин — 120 г, лёгкий сыр — 30 г, чипсы нори — 5 г.", "steps": "Отварить рис, смешать с размятым тунцом, рикоттой, мягким творогом и натёртым лёгким сыром. Подавать с хрустящими чипсами нори."}, {"id": "m_tvorog", "category": "Десерты", "name": "Творог 500г + молоко + сгущенка (Классика)", "kcal": 780, "p": 84, "f": 18, "c": 68, "portionNote": "Массонаборный хит", "video": "", "ingredients": "Творог обезжиренный/2% — 500 г, молоко — 100 мл, сгущённое молоко — 40 г.", "steps": "Залить сухой творог молоком, добавить сгущёнку и перемешать до кремовой консистенции."}];
+
+    const FRIDGE_PRODUCTS = [
+      { id: 'творог', label: 'Творог / Рикотта', keywords: ['творог', 'рикотта'] },
+      { id: 'яйц', label: 'Яйца / Белок', keywords: ['яйц', 'белок'] },
+      { id: 'курин', label: 'Курица / Грудка', keywords: ['курин', 'грудк', 'филе'] },
+      { id: 'овсян', label: 'Овсянка', keywords: ['овсян'] },
+      { id: 'йогурт', label: 'Греческий йогурт', keywords: ['йогурт'] },
+      { id: 'вишн', label: 'Вишня', keywords: ['вишн'] },
+      { id: 'креветк', label: 'Креветки / Тунец', keywords: ['креветк', 'тунец'] },
+      { id: 'рис', label: 'Рис / Макароны', keywords: ['рис', 'макарон'] },
+      { id: 'сыр', label: 'Сыр / Моцарелла', keywords: ['сыр', 'моцарелл', 'пармезан'] },
+      { id: 'крабов', label: 'Крабовые палочки', keywords: ['крабов'] },
+      { id: 'картоф', label: 'Картофель', keywords: ['картоф'] },
+      { id: 'пудинг', label: 'Протеин / Пудинг', keywords: ['пудинг', 'какао'] },
+    ];
+
+    const PLATE_INVENTORY = [
+      { weight: 25,   color: '#EF4444', edge: '#991B1B', height: 84, width: 13, label: '25' },
+      { weight: 20,   color: '#3B82F6', edge: '#1E40AF', height: 80, width: 12, label: '20' },
+      { weight: 15,   color: '#EAB308', edge: '#854D0E', height: 68, width: 11, label: '15' },
+      { weight: 10,   color: '#22C55E', edge: '#166534', height: 58, width: 10, label: '10' },
+      { weight: 5,    color: '#F4F4F5', edge: '#A1A1AA', height: 46, width: 8,  label: '5'  },
+      { weight: 2.5,  color: '#3F3F46', edge: '#18181B', height: 36, width: 7,  label: '2.5'},
+      { weight: 1.25, color: '#D4D4D8', edge: '#71717A', height: 28, width: 6,  label: '1.25'},
+    ];
+
+    const BUILTIN_13_WEEKS = [{"week": 1, "title": "1 НЕДЕЛЯ · Начало пути", "days": [{"day": "Пн", "title": "1 Неделя · Понедельник", "items": [{"name": "Приседания со штангой", "exId": "squat", "blocks": [{"pct": 50, "reps": 10, "sets": 3}], "isBase": true, "note": "Разминка + втягивающий объем"}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 75, "reps": 3, "sets": 5}], "isBase": true, "note": "База · Отдых 3–5 мин"}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 3}], "isBase": false, "note": "Подсобка · Вес индивидуально"}, {"name": "Сгибание штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": "Подсобка"}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": "Без отягощения"}, {"name": "Гиперэкстензия", "exId": null, "blocks": [{"pct": 0, "reps": 20, "sets": 2}], "isBase": false, "note": "Без отягощения"}]}, {"day": "Ср", "title": "1 Неделя · Среда", "items": [{"name": "Гиперэкстензия с весом", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": "Вес блина индивидуально"}, {"name": "Жим штанги стоя", "exId": null, "blocks": [{"pct": 0, "reps": 6, "sets": 2}], "isBase": false, "note": "Легкая техническая работа (подбор веса)"}, {"name": "Подтягивания узким хватом + Горизонтальная тяга блока (Суперсет)", "exId": null, "blocks": [{"pct": 0, "reps": 15, "sets": 4}, {"pct": 0, "reps": 30, "sets": 4}], "isBase": false, "note": "Суперсет без отдыха"}, {"name": "Сгибания кисти", "exId": null, "blocks": [{"pct": 0, "reps": 15, "sets": 4}], "isBase": false, "note": "Предплечья"}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "1 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 60, "reps": 5, "sets": 2}], "isBase": true, "note": "Легкий технический жим"}, {"name": "Жим штанги лежа на скамье 30°", "exId": "bench", "blocks": [{"pct": 50, "reps": 6, "sets": 4}], "isBase": true, "note": "50% от жима лежа · Верх грудных"}, {"name": "Разводка гантелей лежа на скамье 30°", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Махи гантелей в сторону", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": "Средняя дельта"}, {"name": "Сгибание на бицепс обратным хватом", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}]}]}, {"week": 2, "title": "2 НЕДЕЛЯ · Ты уже на пути!", "days": [{"day": "Пн", "title": "2 Неделя · Понедельник", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 4, "sets": 2}, {"pct": 77, "reps": 3, "sets": 5}], "isBase": true, "note": "2 подхода 70%×4, затем 5 рабочих 77%×3"}, {"name": "Приседания со штангой", "exId": "squat", "blocks": [{"pct": 60, "reps": 8, "sets": 4}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа узким хватом", "exId": "bench", "blocks": [{"pct": 50, "reps": 5, "sets": 5}], "isBase": true, "note": "50% от жима лежа · Трицепс и дожим"}, {"name": "Сгибание штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 12, "sets": 4}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "2 Неделя · Среда", "items": [{"name": "Тяга становая", "exId": "deadlift", "blocks": [{"pct": 50, "reps": 8, "sets": 4}], "isBase": true, "note": "База · Отдых 3–5 мин"}, {"name": "Жим штанги сидя", "exId": null, "blocks": [{"pct": 0, "reps": 6, "sets": 4}], "isBase": false, "note": "Подсобка на плечи"}, {"name": "Вертикальная тяга + Горизонтальная тяга (Суперсет)", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 5}, {"pct": 0, "reps": 10, "sets": 5}], "isBase": false, "note": "Суперсет на спину"}, {"name": "Сгибания кисти", "exId": null, "blocks": [{"pct": 0, "reps": 15, "sets": 4}], "isBase": false, "note": ""}, {"name": "Гиперэкстензия", "exId": null, "blocks": [{"pct": 0, "reps": 20, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "2 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 3, "sets": 2}, {"pct": 80, "reps": 3, "sets": 5}], "isBase": true, "note": "Выход на 80% × 3 × 5"}, {"name": "Жим гантелей лежа на скамье 30°", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Разгибания на трицепс в блоке", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания на бицепс «молотки»", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 5}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}]}, {"week": 3, "title": "3 НЕДЕЛЯ · Первые успехи", "days": [{"day": "Пн", "title": "3 Неделя · Понедельник", "items": [{"name": "Приседания со штангой", "exId": "squat", "blocks": [{"pct": 60, "reps": 12, "sets": 3}], "isBase": true, "note": "Многоповторный присед"}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 80, "reps": 3, "sets": 6}], "isBase": true, "note": "6 рабочих подходов на 80%"}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 6, "sets": 6}], "isBase": false, "note": "Тяжелый бицепс 6×6"}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "3 Неделя · Среда", "items": [{"name": "Тяга становая", "exId": "deadlift", "blocks": [{"pct": 55, "reps": 8, "sets": 4}], "isBase": true, "note": ""}, {"name": "Жим штанги сидя", "exId": null, "blocks": [{"pct": 0, "reps": 5, "sets": 5}], "isBase": false, "note": ""}, {"name": "Подтягивания широким хватом", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Вертикальная тяга блока к груди", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 3}], "isBase": false, "note": ""}, {"name": "Негативные подтягивания", "exId": null, "blocks": [{"pct": 0, "reps": 4, "sets": 3}], "isBase": false, "note": "Медленное опускание"}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "3 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 5, "sets": 5}], "isBase": true, "note": "Объемный жим 5×5"}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 3}], "isBase": false, "note": ""}, {"name": "Жим средним хватом", "exId": "bench", "blocks": [{"pct": 55, "reps": 5, "sets": 4}], "isBase": true, "note": "55% от жима лежа"}, {"name": "Сгибания на бицепс обратным хватом", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}]}, {"week": 4, "title": "4 НЕДЕЛЯ · Уверенность набирает обороты!", "days": [{"day": "Пн", "title": "4 Неделя · Понедельник", "items": [{"name": "Приседания со штангой", "exId": "squat", "blocks": [{"pct": 50, "reps": 15, "sets": 3}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 4, "sets": 2}, {"pct": 75, "reps": 4, "sets": 2}, {"pct": 77, "reps": 3, "sets": 2}, {"pct": 85, "reps": 2, "sets": 2}, {"pct": 82, "reps": 2, "sets": 3}], "isBase": true, "note": "Пирамида с выходом на 85% × 2 × 2"}, {"name": "Разводка гантелей лежа на скамье 30°", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 3}], "isBase": false, "note": ""}, {"name": "Французский жим", "exId": null, "blocks": [{"pct": 0, "reps": 5, "sets": 5}], "isBase": false, "note": "Трицепс очень аккуратно"}, {"name": "Сгибания штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "4 Неделя · Среда", "items": [{"name": "Тяга становая", "exId": "deadlift", "blocks": [{"pct": 60, "reps": 5, "sets": 5}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа на скамье 30°", "exId": "bench", "blocks": [{"pct": 60, "reps": 4, "sets": 5}], "isBase": true, "note": "60% от жима лежа"}, {"name": "Вертикальная тяга блока к груди", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Горизонтальная тяга блока к поясу", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 4, "sets": 4}], "isBase": true, "note": "Второй жим за неделю"}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "4 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 3, "sets": 2}, {"pct": 75, "reps": 3, "sets": 5}], "isBase": true, "note": ""}, {"name": "Разводка гантелей лежа на скамье 30°", "exId": null, "blocks": [{"pct": 0, "reps": 6, "sets": 4}], "isBase": false, "note": ""}, {"name": "Жим лежа негативный", "exId": "bench", "blocks": [{"pct": 70, "reps": 4, "sets": 2}, {"pct": 85, "reps": 3, "sets": 4}], "isBase": true, "note": "Только фаза опускания штанги, вверх поднимает страхующий"}, {"name": "Махи гантелей в сторону", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания на бицепс обратным хватом", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 5}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}]}, {"week": 5, "title": "5 НЕДЕЛЯ · Ты становишься сильнее", "days": [{"day": "Пн", "title": "5 Неделя · Понедельник", "items": [{"name": "Приседания со штангой", "exId": "squat", "blocks": [{"pct": 60, "reps": 8, "sets": 4}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 3, "sets": 2}, {"pct": 80, "reps": 3, "sets": 6}], "isBase": true, "note": ""}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Жим штанги лежа (Лесенка)", "exId": "bench", "blocks": [{"pct": 60, "reps": 5, "sets": 1}, {"pct": 65, "reps": 5, "sets": 1}, {"pct": 70, "reps": 5, "sets": 1}, {"pct": 75, "reps": 5, "sets": 1}, {"pct": 80, "reps": 5, "sets": 1}], "isBase": true, "note": "Плавный подъем 60% -> 80%"}, {"name": "Сгибание штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "5 Неделя · Среда", "items": [{"name": "Тяга становая", "exId": "deadlift", "blocks": [{"pct": 65, "reps": 6, "sets": 5}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа на скамье 30°", "exId": "bench", "blocks": [{"pct": 65, "reps": 4, "sets": 5}], "isBase": true, "note": "65% от жима лежа"}, {"name": "Подтягивания узким хватом", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Горизонтальная тяга блока к поясу", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Тяга гантели в наклоне", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "5 Неделя · Пятница", "items": [{"name": "Жим штанги лежа (Волна)", "exId": "bench", "blocks": [{"pct": 60, "reps": 6, "sets": 1}, {"pct": 65, "reps": 5, "sets": 1}, {"pct": 70, "reps": 4, "sets": 1}, {"pct": 80, "reps": 3, "sets": 1}, {"pct": 85, "reps": 2, "sets": 1}, {"pct": 87, "reps": 1, "sets": 1}, {"pct": 82.5, "reps": 3, "sets": 1}, {"pct": 75, "reps": 4, "sets": 1}, {"pct": 60, "reps": 6, "sets": 1}, {"pct": 55, "reps": 8, "sets": 1}], "isBase": true, "note": "Вас погубит жадность. Не прибавляйте вес!"}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 3}], "isBase": false, "note": ""}, {"name": "Жим гантелей сидя", "exId": null, "blocks": [{"pct": 0, "reps": 6, "sets": 4}], "isBase": false, "note": ""}, {"name": "Махи гантелей в сторону", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания на бицепс «молотки»", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}]}, {"week": 6, "title": "6 НЕДЕЛЯ · Середина пути!", "days": [{"day": "Пн", "title": "6 Неделя · Понедельник", "items": [{"name": "Приседания со штангой", "exId": "squat", "blocks": [{"pct": 70, "reps": 6, "sets": 5}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 4, "sets": 2}, {"pct": 80, "reps": 3, "sets": 2}, {"pct": 85, "reps": 2, "sets": 3}], "isBase": true, "note": "3 подхода по 2 повторения на 85%"}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 5}], "isBase": false, "note": ""}, {"name": "Жим лежа средним хватом", "exId": "bench", "blocks": [{"pct": 55, "reps": 5, "sets": 1}, {"pct": 60, "reps": 5, "sets": 1}, {"pct": 65, "reps": 5, "sets": 1}, {"pct": 70, "reps": 5, "sets": 1}, {"pct": 75, "reps": 5, "sets": 1}], "isBase": true, "note": "От жима лежа"}, {"name": "Сгибания штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 6, "sets": 6}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "6 Неделя · Среда", "items": [{"name": "Мертвая тяга", "exId": "deadlift", "blocks": [{"pct": 50, "reps": 12, "sets": 3}], "isBase": true, "note": ""}, {"name": "Жим штанги стоя", "exId": null, "blocks": [{"pct": 0, "reps": 6, "sets": 5}], "isBase": false, "note": ""}, {"name": "Вертикальная тяга + Горизонтальная тяга (Суперсет)", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}, {"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": "Суперсет"}, {"name": "Тяга Т-грифа", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Гиперэкстензия", "exId": null, "blocks": [{"pct": 0, "reps": 20, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "6 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 80, "reps": 4, "sets": 4}], "isBase": true, "note": "80% × 4 × 4"}, {"name": "Жим штанги лежа на скамье 30°", "exId": "bench", "blocks": [{"pct": 50, "reps": 8, "sets": 3}], "isBase": true, "note": "50% от жима лежа"}, {"name": "Махи гантелей в сторону", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Разгибания на трицепс в блоке", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": "Легко"}, {"name": "Сгибания на бицепс обратным хватом", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}]}]}, {"week": 7, "title": "7 НЕДЕЛЯ · По ту сторону экватора", "days": [{"day": "Пн", "title": "7 Неделя · Понедельник", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 3, "sets": 2}, {"pct": 80, "reps": 3, "sets": 2}, {"pct": 85, "reps": 2, "sets": 2}, {"pct": 80, "reps": 3, "sets": 2}], "isBase": true, "note": ""}, {"name": "Приседания со штангой", "exId": "squat", "blocks": [{"pct": 60, "reps": 10, "sets": 3}], "isBase": true, "note": ""}, {"name": "Жим средним хватом", "exId": "bench", "blocks": [{"pct": 75, "reps": 4, "sets": 4}], "isBase": true, "note": "75% от жима лежа"}, {"name": "Сгибания штанги + Сгибания обратным хватом (Суперсет)", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 3}, {"pct": 0, "reps": 8, "sets": 3}], "isBase": false, "note": "Суперсет на бицепс"}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "7 Неделя · Среда", "items": [{"name": "Тяга становая", "exId": "deadlift", "blocks": [{"pct": 55, "reps": 8, "sets": 4}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа на скамье 30°", "exId": "bench", "blocks": [{"pct": 65, "reps": 5, "sets": 4}], "isBase": true, "note": "65% от жима лежа"}, {"name": "Разгибания на трицепс в блоке", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Горизонтальная тяга блока к поясу", "exId": null, "blocks": [{"pct": 0, "reps": 20, "sets": 4}], "isBase": false, "note": ""}, {"name": "Тяга Т-грифа", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Гиперэкстензия", "exId": null, "blocks": [{"pct": 0, "reps": 20, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "7 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 3, "sets": 2}, {"pct": 80, "reps": 3, "sets": 1}, {"pct": 85, "reps": 2, "sets": 3}, {"pct": 87, "reps": 1, "sets": 2}], "isBase": true, "note": "Синглы на 87%"}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Жим штанги лежа (Добивка)", "exId": "bench", "blocks": [{"pct": 70, "reps": 5, "sets": 5}], "isBase": true, "note": ""}, {"name": "Махи гантелей в сторону", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания на бицепс «молотки»", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}]}, {"week": 8, "title": "8 НЕДЕЛЯ · Не сворачивай с пути!", "days": [{"day": "Пн", "title": "8 Неделя · Понедельник", "items": [{"name": "Приседания со штангой", "exId": "squat", "blocks": [{"pct": 70, "reps": 5, "sets": 5}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 3, "sets": 2}, {"pct": 80, "reps": 3, "sets": 2}, {"pct": 85, "reps": 2, "sets": 5}], "isBase": true, "note": "5 подходов по 2 на 85%"}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 3}], "isBase": false, "note": ""}, {"name": "Французский жим", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": "Очень аккуратно"}, {"name": "Сгибания штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 5}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "8 Неделя · Среда", "items": [{"name": "Гиперэкстензия с весом", "exId": null, "blocks": [{"pct": 0, "reps": 20, "sets": 3}], "isBase": false, "note": "С весом 20 кг"}, {"name": "Жим штанги лежа на скамье 30°", "exId": "bench", "blocks": [{"pct": 70, "reps": 5, "sets": 3}], "isBase": true, "note": "70% от жима лежа"}, {"name": "Жим гантелей сидя", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 3}], "isBase": false, "note": ""}, {"name": "Подтягивания узким хватом", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Вертикальная тяга блока к груди", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "8 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 3, "sets": 2}, {"pct": 80, "reps": 4, "sets": 4}], "isBase": true, "note": ""}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 6, "sets": 5}], "isBase": false, "note": ""}, {"name": "Разгибания на трицепс в блоке", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}, {"name": "Сгибания штанги на бицепс обратным хватом", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}]}, {"week": 9, "title": "9 НЕДЕЛЯ · Дорогу осилит идущий", "days": [{"day": "Пн", "title": "9 Неделя · Понедельник", "items": [{"name": "Приседания со штангой", "exId": "squat", "blocks": [{"pct": 60, "reps": 8, "sets": 4}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 50, "reps": 8, "sets": 1}, {"pct": 60, "reps": 6, "sets": 1}, {"pct": 70, "reps": 5, "sets": 2}, {"pct": 80, "reps": 4, "sets": 2}, {"pct": 85, "reps": 3, "sets": 2}, {"pct": 87, "reps": 2, "sets": 2}], "isBase": true, "note": "Выход на 87% × 2 × 2"}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 3}], "isBase": false, "note": ""}, {"name": "Разгибания на трицепс в блоке", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}, {"name": "Сгибания штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "9 Неделя · Среда", "items": [{"name": "Тяга становая", "exId": "deadlift", "blocks": [{"pct": 60, "reps": 8, "sets": 3}], "isBase": true, "note": ""}, {"name": "Тяга Т-грифа", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Вертикальная тяга + Горизонтальная тяга (Суперсет)", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 3}, {"pct": 0, "reps": 10, "sets": 3}], "isBase": false, "note": "Суперсет"}, {"name": "Сгибания кисти", "exId": null, "blocks": [{"pct": 0, "reps": 15, "sets": 4}], "isBase": false, "note": ""}, {"name": "Гиперэкстензия", "exId": null, "blocks": [{"pct": 0, "reps": 20, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "9 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 3, "sets": 2}, {"pct": 80, "reps": 3, "sets": 2}, {"pct": 85, "reps": 2, "sets": 3}], "isBase": true, "note": ""}, {"name": "Разводка гантелей лежа на скамье 30°", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 3}], "isBase": false, "note": ""}, {"name": "Жим лежа в слингшоте или с бруска 15 см", "exId": "bench", "blocks": [{"pct": 70, "reps": 3, "sets": 1}, {"pct": 80, "reps": 3, "sets": 1}, {"pct": 90, "reps": 3, "sets": 1}, {"pct": 100, "reps": 1, "sets": 2}], "isBase": true, "note": "Адаптация ЦНС к 100% весу"}, {"name": "Махи гантелей в сторону", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания на бицепс «молотки»", "exId": null, "blocks": [{"pct": 0, "reps": 12, "sets": 4}], "isBase": false, "note": ""}]}]}, {"week": 10, "title": "10 НЕДЕЛЯ · Успех уже близко!", "days": [{"day": "Пн", "title": "10 Неделя · Понедельник", "items": [{"name": "Приседания со штангой", "exId": "squat", "blocks": [{"pct": 70, "reps": 5, "sets": 4}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 60, "reps": 6, "sets": 1}, {"pct": 70, "reps": 5, "sets": 1}, {"pct": 80, "reps": 4, "sets": 4}, {"pct": 85, "reps": 3, "sets": 2}, {"pct": 87, "reps": 2, "sets": 2}], "isBase": true, "note": ""}, {"name": "Разводка гантелей лежа на скамье 30°", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}, {"name": "Жим штанги лежа скоростной", "exId": "bench", "blocks": [{"pct": 60, "reps": 2, "sets": 5}], "isBase": true, "note": "Опускаем медленно и взрыв вверх. Отдых 60 сек"}, {"name": "Сгибания штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 6, "sets": 6}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "10 Неделя · Среда", "items": [{"name": "Тяга становая", "exId": "deadlift", "blocks": [{"pct": 70, "reps": 4, "sets": 4}], "isBase": true, "note": ""}, {"name": "Подтягивания узким хватом", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 3}], "isBase": false, "note": ""}, {"name": "Горизонтальная тяга блока к поясу", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 5}], "isBase": false, "note": ""}, {"name": "Тяга гантели в наклоне", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 3}], "isBase": false, "note": ""}, {"name": "Гиперэкстензия", "exId": null, "blocks": [{"pct": 0, "reps": 20, "sets": 2}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "10 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 80, "reps": 2, "sets": 4}], "isBase": true, "note": "Тонизирующий жим"}, {"name": "Жим гантелей лежа", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": "Очень легко"}, {"name": "Махи гантелей в сторону", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания на бицепс обратным хватом", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}]}, {"week": 11, "title": "11 НЕДЕЛЯ · Ты в одном шаге", "days": [{"day": "Пн", "title": "11 Неделя · Понедельник (Пиковая проходка 95%)", "items": [{"name": "Приседания со штангой", "exId": "squat", "blocks": [{"pct": 60, "reps": 8, "sets": 3}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 60, "reps": 6, "sets": 1}, {"pct": 70, "reps": 5, "sets": 1}, {"pct": 80, "reps": 4, "sets": 1}, {"pct": 85, "reps": 3, "sets": 1}, {"pct": 90, "reps": 3, "sets": 1}, {"pct": 92.5, "reps": 3, "sets": 1}, {"pct": 95, "reps": 3, "sets": 1}], "isBase": true, "note": "Выход на 95%"}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Разгибания на трицепс в блоке", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 15, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "11 Неделя · Среда", "items": [{"name": "Тяга становая", "exId": "deadlift", "blocks": [{"pct": 60, "reps": 6, "sets": 5}], "isBase": true, "note": ""}, {"name": "Вертикальная тяга + Горизонтальная тяга (Суперсет)", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}, {"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": "Суперсет"}, {"name": "Тяга Т-грифа", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Гиперэкстензия с весом", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": "С весом 10 кг"}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "11 Неделя · Пятница", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 75, "reps": 5, "sets": 5}, {"pct": 80, "reps": 2, "sets": 4}], "isBase": true, "note": ""}, {"name": "Жим штанги сидя", "exId": null, "blocks": [{"pct": 0, "reps": 6, "sets": 4}], "isBase": false, "note": ""}, {"name": "Махи гантелей в сторону", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания на бицепс обратным хватом", "exId": null, "blocks": [{"pct": 0, "reps": 12, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания кисти", "exId": null, "blocks": [{"pct": 0, "reps": 15, "sets": 4}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}]}, {"week": 12, "title": "12 НЕДЕЛЯ · Шлифовка результата", "days": [{"day": "Пн", "title": "12 Неделя · Понедельник", "items": [{"name": "Приседания со штангой", "exId": "squat", "blocks": [{"pct": 70, "reps": 5, "sets": 4}], "isBase": true, "note": ""}, {"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 4, "sets": 2}, {"pct": 80, "reps": 3, "sets": 1}, {"pct": 82.5, "reps": 2, "sets": 3}], "isBase": true, "note": "Подводка к 100 кг"}, {"name": "Разгибания на трицепс в блоке", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 4}], "isBase": false, "note": ""}, {"name": "Разводка гантелей лежа на скамье", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 4}], "isBase": false, "note": ""}, {"name": "Сгибания штанги на бицепс", "exId": null, "blocks": [{"pct": 0, "reps": 15, "sets": 4}], "isBase": false, "note": ""}]}, {"day": "Ср", "title": "12 Неделя · Среда", "items": [{"name": "Гиперэкстензия с весом", "exId": null, "blocks": [{"pct": 0, "reps": 10, "sets": 3}], "isBase": false, "note": "С весом 20 кг"}, {"name": "Вертикальная тяга + Горизонтальная тяга (Суперсет)", "exId": null, "blocks": [{"pct": 0, "reps": 15, "sets": 3}, {"pct": 0, "reps": 15, "sets": 3}], "isBase": false, "note": "Легкий тонус"}, {"name": "Сгибания на бицепс «молотки»", "exId": null, "blocks": [{"pct": 0, "reps": 8, "sets": 5}], "isBase": false, "note": ""}, {"name": "Сгибания кисти", "exId": null, "blocks": [{"pct": 0, "reps": 15, "sets": 4}], "isBase": false, "note": ""}, {"name": "Пресс", "exId": null, "blocks": [{"pct": 0, "reps": 30, "sets": 3}], "isBase": false, "note": ""}]}, {"day": "Пт", "title": "12 Неделя · Пятница (Разгрузка перед проходкой)", "items": [{"name": "Жим штанги лежа", "exId": "bench", "blocks": [{"pct": 70, "reps": 4, "sets": 4}], "isBase": true, "note": "Последний легкий жим перед рекордом"}, {"name": "Медитация в зале", "exId": null, "blocks": [{"pct": 0, "reps": 1, "sets": 1}], "isBase": false, "note": "Тренировка духа и ментальный настрой на 100 кг"}]}]}, {"week": 13, "title": "13 НЕДЕЛЯ · ПУТЬ ДО 100 КГ (ПРОХОДКА)", "days": [{"day": "Пн", "title": "13 Неделя · Понедельник (ДЕНЬ ПРОХОДКИ НА 100 КГ)", "items": [{"name": "Жим штанги лежа (Цель: 100 КГ)", "exId": "bench", "blocks": [{"pct": 50, "reps": 6, "sets": 1}, {"pct": 60, "reps": 5, "sets": 1}, {"pct": 70, "reps": 3, "sets": 1}, {"pct": 80, "reps": 2, "sets": 1}, {"pct": 90, "reps": 1, "sets": 1}, {"pct": 100, "reps": 1, "sets": 1}, {"pct": 102, "reps": 1, "sets": 1}], "isBase": true, "note": "Отдых 5 минут перед тяжелыми синглами. Уверенный жим 100 кг!"}]}]}];
+
+    // ============================================================================
+    // 2. МАТЕМАТИКА ШТАНГИ, БЛИНОВ IPF, e1RM И DOTS
+    // ============================================================================
+    function roundToStep(rawWeight, step = 2.5, minWeight = 20) {
+      if (!rawWeight || isNaN(rawWeight)) return minWeight;
+      const rounded = Math.round(rawWeight / step) * step;
+      return Math.max(minWeight, Number(rounded.toFixed(2)));
+    }
+
+    function calculatePlatesPerSide(targetWeight, barbellWeight = 20) {
+      if (targetWeight <= barbellWeight) {
+        return { plates: [], perSideKg: 0 };
+      }
+      let remainingPerSide = Number(((targetWeight - barbellWeight) / 2).toFixed(3));
+      const plates = [];
+
+      for (const plate of PLATE_INVENTORY) {
+        while (remainingPerSide >= plate.weight - 0.001) {
+          plates.push(plate);
+          remainingPerSide = Number((remainingPerSide - plate.weight).toFixed(3));
+        }
+      }
+      return {
+        plates,
+        perSideKg: Number(((targetWeight - barbellWeight) / 2).toFixed(2)),
+      };
+    }
+
+    function calculateE1RM(weight, reps) {
+      if (!weight || !reps || reps <= 0) return 0;
+      if (reps === 1) return weight;
+      const epley = weight * (1 + reps / 30);
+      const brzycki = reps < 37 ? weight * (36 / (37 - reps)) : epley;
+      return Number(((epley + brzycki) / 2).toFixed(1));
+    }
+
+    function calculateDOTS(totalKg, bwKg) {
+      if (!totalKg || !bwKg || bwKg < 40) return 0;
+      const a = -0.000001093;
+      const b = 0.0007391293;
+      const c = -0.1918759221;
+      const d = 24.0900756;
+      const e = -307.75076;
+      const denom = a * Math.pow(bwKg, 4) + b * Math.pow(bwKg, 3) + c * Math.pow(bwKg, 2) + d * bwKg + e;
+      return denom > 0 ? Number(((totalKg * 500) / denom).toFixed(1)) : 0;
+    }
+
+    function playTimerBeep() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.35);
+        gain.gain.setValueAtTime(0.18, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.36);
+      } catch {}
+    }
+
+    // ============================================================================
+    // 3. NATIVE iOS BOTTOM SHEET COMPONENT (Шторка со свайпом вниз)
+    // ============================================================================
+    function BottomSheet({ isOpen, onClose, title, subtitle, children }) {
+      const [dragY, setDragY] = useState(0);
+      const startYRef = useRef(null);
+
+      useEffect(() => {
+        if (isOpen) {
+          setDragY(0);
+          document.body.style.overflow = 'hidden';
+        } else {
+          document.body.style.overflow = '';
+        }
+        return () => { document.body.style.overflow = ''; };
+      }, [isOpen]);
+
+      if (!isOpen) return null;
+
+      const handleTouchStart = (e) => {
+        startYRef.current = e.touches[0].clientY;
+      };
+
+      const handleTouchMove = (e) => {
+        if (startYRef.current === null) return;
+        const delta = e.touches[0].clientY - startYRef.current;
+        if (delta > 0) setDragY(delta);
+      };
+
+      const handleTouchEnd = () => {
+        if (dragY > 110) {
+          triggerHaptic();
+          onClose();
+        } else {
+          setDragY(0);
+        }
+        startYRef.current = null;
+      };
+
+      return (
+        <div
+          onClick={() => { triggerHaptic(); onClose(); }}
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center transition-opacity"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              transform: `translateY(${dragY}px)`,
+              transition: dragY === 0 ? 'transform 0.25s cubic-bezier(0.22, 1, 0.36, 1)' : 'none',
+            }}
+            className="animate-sheet-up w-full max-w-lg bg-[#121216] border-t sm:border border-zinc-700/80 rounded-t-[28px] sm:rounded-2xl shadow-[0_-16px_50px_rgba(0,0,0,0.85)] max-h-[88vh] flex flex-col pb-[env(safe-area-inset-bottom)]"
+          >
+            {/* Зона свайпа (Drag Handle Pill) */}
+            <div
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              className="pt-3 pb-2 px-5 cursor-grab active:cursor-grabbing select-none shrink-0"
+            >
+              <div className="w-10 h-1.5 rounded-full bg-zinc-700 mx-auto mb-3" />
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  {subtitle && (
+                    <div className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-semibold">
+                      {subtitle}
+                    </div>
+                  )}
+                  <h3 className="text-base font-bold text-zinc-50 leading-snug mt-0.5">{title}</h3>
+                </div>
+                <button
+                  onClick={() => { triggerHaptic(); onClose(); }}
+                  className="w-8 h-8 rounded-full bg-zinc-800/90 text-zinc-400 hover:text-white flex items-center justify-center font-mono text-sm shrink-0"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="px-5 pb-6 overflow-y-auto flex-1">
+              {children}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ============================================================================
+    // 4. 3D BARBELL & PLATES VISUALIZER
+    // ============================================================================
+    function Barbell3DVisualizer({ targetWeight, barbellWeight = 20, title }) {
+      const { plates, perSideKg } = useMemo(
+        () => calculatePlatesPerSide(targetWeight, barbellWeight),
+        [targetWeight, barbellWeight]
+      );
+
+      return (
+        <div className="bg-surface border border-borderSubtle rounded-2xl p-4 shadow-[0_12px_40px_rgba(0,0,0,0.65)] relative overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-zinc-500/40 to-transparent" />
+
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <div>
+              <div className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-emerald-400 font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                3D Barbell · IPF Standard
+              </div>
+              <div className="text-sm font-semibold text-zinc-100 mt-1 leading-snug">{title}</div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="font-mono tabular text-2xl font-bold text-zinc-50 tracking-tight">
+                {targetWeight} <span className="text-xs font-normal text-zinc-400">кг</span>
+              </div>
+              <div className="font-mono tabular text-[11px] text-emerald-400/90">
+                +{perSideKg} кг / сторона
+              </div>
+            </div>
+          </div>
+
+          <div className="relative h-36 bg-gradient-to-b from-[#060608] via-[#0D0D11] to-[#060608] border border-zinc-800/90 rounded-xl flex items-center justify-center overflow-hidden px-3 my-2">
+            <div className="absolute bottom-2 inset-x-10 h-3 bg-emerald-500/10 blur-xl rounded-full" />
+
+            <div className="relative flex items-center">
+              <div className="w-14 h-2.5 bg-gradient-to-b from-zinc-300 via-zinc-500 to-zinc-800 rounded-l-sm shadow-md relative">
+                <div className="absolute inset-y-0 left-2 right-2 opacity-30 bg-[repeating-linear-gradient(90deg,#000,#000_1px,transparent_1px,transparent_3px)]" />
+              </div>
+              <div className="w-3 h-9 bg-gradient-to-b from-zinc-200 via-zinc-400 to-zinc-700 border-x border-zinc-600 rounded-[2px] shadow-lg z-10" />
+
+              <div className="relative flex items-center gap-[3px] pl-1 pr-9 min-w-[210px] h-28">
+                <div className="absolute left-0 right-2 h-4 bg-gradient-to-b from-zinc-300 via-zinc-500 to-zinc-800 rounded-r-md shadow-inner z-0" />
+
+                {plates.length === 0 ? (
+                  <span className="relative z-10 ml-4 px-2.5 py-1 rounded bg-zinc-900/90 border border-zinc-700/70 font-mono text-[11px] text-zinc-400">
+                    Пустой гриф · {barbellWeight} кг
+                  </span>
+                ) : (
+                  plates.map((plate, index) => (
+                    <div
+                      key={`${plate.weight}-${index}`}
+                      style={{
+                        height: `${plate.height}px`,
+                        width: `${plate.width + 5}px`,
+                        background: `linear-gradient(180deg, ${plate.color} 0%, ${plate.edge} 100%)`,
+                        borderColor: plate.color,
+                      }}
+                      className="relative z-10 rounded-[3px] border flex items-center justify-center shadow-[4px_6px_14px_rgba(0,0,0,0.75)] transition-all duration-300"
+                    >
+                      <div className="absolute inset-y-0 right-0 w-[3px] bg-black/35 rounded-r-[2px]" />
+                      <div className="absolute inset-x-0 top-0 h-[22%] bg-white/25 rounded-t-[2px]" />
+                      <span
+                        style={{ color: plate.weight === 5 || plate.weight === 1.25 ? '#09090B' : '#FFFFFF' }}
+                        className="font-mono text-[9px] font-extrabold -rotate-90 select-none z-10"
+                      >
+                        {plate.label}
+                      </span>
+                    </div>
+                  ))
+                )}
+
+                {plates.length > 0 && (
+                  <div
+                    className="relative z-10 w-3.5 h-7 bg-gradient-to-b from-zinc-200 via-zinc-400 to-zinc-700 border border-zinc-500 rounded-[2px] ml-1 shadow-lg"
+                    title="Замок"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2.5 border-t border-zinc-800/80 text-xs">
+            <span className="text-zinc-500">На каждую сторону:</span>
+            <span className="font-mono tabular font-semibold text-zinc-200">
+              {plates.length === 0 ? 'Только гриф (20 кг)' : plates.map((p) => `[${p.label}]`).join(' + ')}
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    // ============================================================================
+    // 5. MAIN APPLICATION (iOS NATIVE POLISH)
+    // ============================================================================
+    function App() {
+      const [exercises, setExercises] = useState(() => {
+        try {
+          const saved = localStorage.getItem('ironcore_ios_v5_ex');
+          return saved ? JSON.parse(saved) : DEFAULT_EXERCISES;
+        } catch {
+          return DEFAULT_EXERCISES;
+        }
+      });
+
+      const [activeTab, setActiveTab] = useState('workout'); // 'workout' | 'recipes' | 'fridge' | 'calc'
+      const [selectedWeek, setSelectedWeek] = useState(1);
+      const [selectedDayIdx, setSelectedDayIdx] = useState(0);
+      const [readinessShift, setReadinessShift] = useState(0);
+      const [activePlateTarget, setActivePlateTarget] = useState(null);
+
+      const [completedSets, setCompletedSets] = useState(() => {
+        try {
+          const saved = localStorage.getItem('ironcore_ios_v5_done');
+          return saved ? JSON.parse(saved) : {};
+        } catch {
+          return {};
+        }
+      });
+
+      const [mealTemplates, setMealTemplates] = useState(() => {
+        try {
+          const saved = localStorage.getItem('ironcore_ios_v5_meals');
+          return saved ? JSON.parse(saved) : DEFAULT_MEAL_TEMPLATES;
+        } catch {
+          return DEFAULT_MEAL_TEMPLATES;
+        }
+      });
+
+      const [recipeCategory, setRecipeCategory] = useState('Все');
+      const [activeRecipeSheet, setActiveRecipeSheet] = useState(null);
+      const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+      const [checkedIngredients, setCheckedIngredients] = useState({});
+      const [selectedFridgeItems, setSelectedFridgeItems] = useState(['творог', 'яйц', 'курин']);
+
+      const [nutritionLog, setNutritionLog] = useState(() => {
+        try {
+          const saved = localStorage.getItem('ironcore_ios_v5_nutr');
+          return saved
+            ? JSON.parse(saved)
+            : { bodyweight: 78.0, dayType: 'workout', entries: [DEFAULT_MEAL_TEMPLATES[0]] };
+        } catch {
+          return { bodyweight: 78.0, dayType: 'workout', entries: [] };
+        }
+      });
+
+      const [timerSec, setTimerSec] = useState(0);
+      const [timerTotal, setTimerTotal] = useState(180);
+      const [timerRunning, setTimerRunning] = useState(false);
+
+      const [calcExId, setCalcExId] = useState('bench');
+      const [calcWeight, setCalcWeight] = useState(85);
+      const [calcReps, setCalcReps] = useState(5);
+
+      const importJsonRef = useRef(null);
+
+      useEffect(() => { localStorage.setItem('ironcore_ios_v5_ex', JSON.stringify(exercises)); }, [exercises]);
+      useEffect(() => { localStorage.setItem('ironcore_ios_v5_done', JSON.stringify(completedSets)); }, [completedSets]);
+      useEffect(() => { localStorage.setItem('ironcore_ios_v5_meals', JSON.stringify(mealTemplates)); }, [mealTemplates]);
+      useEffect(() => { localStorage.setItem('ironcore_ios_v5_nutr', JSON.stringify(nutritionLog)); }, [nutritionLog]);
+
+      useEffect(() => {
+        if (!timerRunning) return;
+        const interval = setInterval(() => {
+          setTimerSec((prev) => {
+            if (prev <= 1) {
+              setTimerRunning(false);
+              playTimerBeep();
+              triggerHaptic();
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+        return () => clearInterval(interval);
+      }, [timerRunning]);
+
+      const startTimer = (sec) => {
+        triggerHaptic();
+        setTimerTotal(sec);
+        setTimerSec(sec);
+        setTimerRunning(true);
+      };
+
+      const formatTime = (sec) => {
+        const m = Math.floor(sec / 60);
+        const s = sec % 60;
+        return `${m}:${s < 10 ? '0' : ''}${s}`;
+      };
+
+      const switchTab = (tabId) => {
+        if (tabId !== activeTab) {
+          triggerHaptic();
+          setActiveTab(tabId);
+        }
+      };
+
+      const weekObj = useMemo(
+        () => BUILTIN_13_WEEKS.find((w) => w.week === selectedWeek) || BUILTIN_13_WEEKS[0],
+        [selectedWeek]
+      );
+
+      const dayObj = weekObj.days[selectedDayIdx] || weekObj.days[0];
+
+      const computedDayItems = useMemo(() => {
+        return dayObj.items.map((item, itemIdx) => {
+          const ex = item.exId ? exercises.find((e) => e.id === item.exId) : null;
+          const computedBlocks = item.blocks.map((b, bIdx) => {
+            if (!ex || !b.pct || b.pct <= 0) {
+              return {
+                ...b,
+                effectivePct: 0,
+                weightKg: null,
+                barbellWeight: 20,
+                blockKey: `w${selectedWeek}-d${selectedDayIdx}-i${itemIdx}-b${bIdx}`,
+              };
+            }
+            const effectivePct = Math.max(30, b.pct + readinessShift);
+            const rawKg = (ex.oneRepMax * effectivePct) / 100;
+            const weightKg = roundToStep(rawKg, ex.step, ex.barbellWeight);
+            return {
+              ...b,
+              effectivePct,
+              weightKg,
+              barbellWeight: ex.barbellWeight,
+              oneRepMax: ex.oneRepMax,
+              blockKey: `w${selectedWeek}-d${selectedDayIdx}-i${itemIdx}-b${bIdx}`,
+            };
+          });
+
+          return {
+            ...item,
+            exName: ex ? ex.name : item.name,
+            oneRepMax: ex ? ex.oneRepMax : null,
+            computedBlocks,
+          };
+        });
+      }, [dayObj, exercises, readinessShift, selectedWeek, selectedDayIdx]);
+
+      const flatDaySets = useMemo(() => {
+        const list = [];
+        computedDayItems.forEach((item, itemIdx) => {
+          item.computedBlocks.forEach((b) => {
+            for (let sIdx = 0; sIdx < b.sets; sIdx++) {
+              const setKey = `${b.blockKey}-s${sIdx}`;
+              list.push({
+                setKey,
+                itemIdx,
+                exerciseName: item.name,
+                isBase: item.isBase,
+                setNumber: sIdx + 1,
+                totalSetsInBlock: b.sets,
+                reps: b.reps,
+                effectivePct: b.effectivePct,
+                weightKg: b.weightKg,
+                barbellWeight: b.barbellWeight || 20,
+                done: !!completedSets[setKey],
+              });
+            }
+          });
+        });
+        return list;
+      }, [computedDayItems, completedSets]);
+
+      const nextPendingSet = useMemo(
+        () => flatDaySets.find((s) => !s.done) || null,
+        [flatDaySets]
+      );
+
+      const completedSetsCount = useMemo(
+        () => flatDaySets.filter((s) => s.done).length,
+        [flatDaySets]
+      );
+
+      useEffect(() => {
+        if (nextPendingSet && nextPendingSet.weightKg) {
+          setActivePlateTarget({
+            weight: nextPendingSet.weightKg,
+            barbell: nextPendingSet.barbellWeight,
+            title: `${nextPendingSet.exerciseName} · Подход #${nextPendingSet.setNumber} (${nextPendingSet.effectivePct}%)`,
+          });
+          return;
+        }
+        for (const it of computedDayItems) {
+          const firstWeighted = it.computedBlocks.find((b) => b.weightKg !== null);
+          if (firstWeighted) {
+            setActivePlateTarget({
+              weight: firstWeighted.weightKg,
+              barbell: firstWeighted.barbellWeight || 20,
+              title: `${it.name} · ${firstWeighted.effectivePct}% × ${firstWeighted.reps} повт.`,
+            });
+            return;
+          }
+        }
+        setActivePlateTarget(null);
+      }, [nextPendingSet, computedDayItems]);
+
+      const handleCompleteNextSet = () => {
+        if (!nextPendingSet) return;
+        triggerHaptic();
+        setCompletedSets((prev) => ({ ...prev, [nextPendingSet.setKey]: true }));
+        if (nextPendingSet.isBase) {
+          startTimer(nextPendingSet.effectivePct >= 88 ? 300 : 180);
+        } else {
+          startTimer(60);
+        }
+      };
+
+      const toggleSet = (setKey, isBase, effectivePct = 0) => {
+        triggerHaptic();
+        const nextVal = !completedSets[setKey];
+        setCompletedSets((prev) => ({ ...prev, [setKey]: nextVal }));
+        if (nextVal) {
+          if (isBase) startTimer(effectivePct >= 88 ? 300 : 180);
+          else startTimer(60);
+        }
+      };
+
+      const handleUpdate1RM = (id, newVal) => {
+        triggerHaptic();
+        const num = parseFloat(newVal);
+        setExercises((prev) =>
+          prev.map((ex) => {
+            if (ex.id !== id) return ex;
+            const cleanVal = isNaN(num) ? 0 : num;
+            const today = new Date().toISOString().slice(0, 10);
+            const updatedHistory = [...(ex.history || [])];
+            if (cleanVal > 0) {
+              const last = updatedHistory[updatedHistory.length - 1];
+              if (last && last.date === today) last.weight = cleanVal;
+              else updatedHistory.push({ date: today, weight: cleanVal });
+            }
+            return { ...ex, oneRepMax: cleanVal, history: updatedHistory };
+          })
+        );
+      };
+
+      const dayTonnage = useMemo(() => {
+        let sum = 0;
+        for (const s of flatDaySets) {
+          if (s.done && s.weightKg) sum += s.weightKg * s.reps;
+        }
+        return Math.round(sum);
+      }, [flatDaySets]);
+
+      const filteredRecipes = useMemo(() => {
+        if (recipeCategory === 'Все') return mealTemplates;
+        return mealTemplates.filter((m) => m.category === recipeCategory);
+      }, [mealTemplates, recipeCategory]);
+
+      const fridgeMatchedRecipes = useMemo(() => {
+        if (selectedFridgeItems.length === 0) return [];
+        const activeKeywords = FRIDGE_PRODUCTS.filter((p) => selectedFridgeItems.includes(p.id)).flatMap((p) => p.keywords);
+        return mealTemplates
+          .map((meal) => {
+            const text = (meal.name + ' ' + meal.ingredients).toLowerCase();
+            let hits = 0;
+            for (const kw of activeKeywords) {
+              if (text.includes(kw)) hits++;
+            }
+            return { ...meal, hits };
+          })
+          .filter((m) => m.hits > 0)
+          .sort((a, b) => b.hits - a.hits || b.p - a.p);
+      }, [mealTemplates, selectedFridgeItems]);
+
+      const toggleFridgeItem = (id) => {
+        triggerHaptic();
+        setSelectedFridgeItems((prev) =>
+          prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+        );
+      };
+
+      const addMealToLog = (meal) => {
+        triggerHaptic();
+        setNutritionLog((prev) => ({
+          ...prev,
+          entries: [...prev.entries, { ...meal, uid: Date.now() + Math.random() }],
+        }));
+      };
+
+      const toggleIngredientCheck = (recipeId, idx) => {
+        triggerHaptic();
+        const k = `${recipeId}-${idx}`;
+        setCheckedIngredients((prev) => ({ ...prev, [k]: !prev[k] }));
+      };
+
+      const nutritionTotals = useMemo(() => {
+        return nutritionLog.entries.reduce(
+          (acc, m) => ({
+            kcal: acc.kcal + (Number(m.kcal) || 0),
+            p: acc.p + (Number(m.p) || 0),
+            f: acc.f + (Number(m.f) || 0),
+            c: acc.c + (Number(m.c) || 0),
+          }),
+          { kcal: 0, p: 0, f: 0, c: 0 }
+        );
+      }, [nutritionLog.entries]);
+
+      const targetKcal = nutritionLog.dayType === 'workout' ? 3000 : 2500;
+      const targetProtein = Math.round((nutritionLog.bodyweight || 78) * 2.0);
+
+      const bench1RM = exercises.find((e) => e.id === 'bench')?.oneRepMax || 0;
+      const progressTo100Pct = Math.min(100, Math.round((bench1RM / 100) * 100));
+
+      const sbdTotal = useMemo(() => {
+        const s = exercises.find((e) => e.id === 'squat')?.oneRepMax || 0;
+        const b = exercises.find((e) => e.id === 'bench')?.oneRepMax || 0;
+        const d = exercises.find((e) => e.id === 'deadlift')?.oneRepMax || 0;
+        return Number((s + b + d).toFixed(1));
+      }, [exercises]);
+
+      const dotsScore = useMemo(
+        () => calculateDOTS(sbdTotal, nutritionLog.bodyweight),
+        [sbdTotal, nutritionLog.bodyweight]
+      );
+
+      const handleExportBackup = () => {
+        triggerHaptic();
+        const payload = { exercises, completedSets, mealTemplates, nutritionLog };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ironcore_ios_backup_${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      const handleImportBackup = async (file) => {
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const data = JSON.parse(text);
+          if (data.exercises) setExercises(data.exercises);
+          if (data.completedSets) setCompletedSets(data.completedSets);
+          if (data.mealTemplates) setMealTemplates(data.mealTemplates);
+          if (data.nutritionLog) setNutritionLog(data.nutritionLog);
+          triggerHaptic();
+          alert('Бэкап успешно восстановлен!');
+        } catch {
+          alert('Ошибка чтения JSON.');
+        }
+      };
+
+      return (
+        <div className="max-w-5xl mx-auto px-4 pt-4 sm:pt-8">
+          {/* ================= TOP HEADER ================= */}
+          <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-borderSubtle">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-b from-zinc-800 to-zinc-950 border border-zinc-700/80 flex items-center justify-center shadow-lg">
+                  <span className="font-mono font-bold text-sm text-emerald-400">100</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-base font-semibold tracking-tight text-zinc-50">IRON CORE</h1>
+                    <span className="px-2 py-0.5 text-[10px] font-mono uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 rounded-full">
+                      Путь до 100 кг
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    Жим {bench1RM} / 100 кг ({progressTo100Pct}%) · Offline PWA
+                  </p>
+                </div>
+              </div>
+
+              <div className="sm:hidden flex items-center gap-1 bg-surface border border-borderSubtle rounded-xl p-1">
+                {[
+                  { label: '60с', sec: 60 },
+                  { label: '3м', sec: 180 },
+                  { label: '5м', sec: 300 },
+                ].map((t) => (
+                  <button
+                    key={t.sec}
+                    onClick={() => startTimer(t.sec)}
+                    className="px-2 py-1 rounded-lg bg-zinc-900 border border-zinc-800 font-mono text-[11px] text-zinc-200 active:scale-95"
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="grid grid-cols-3 gap-2 flex-1 sm:flex-initial">
+                {exercises.map((ex) => (
+                  <div
+                    key={ex.id}
+                    className="bg-surface border border-borderSubtle rounded-xl px-3 py-1.5 focus-within:border-emerald-500/50 transition-colors"
+                  >
+                    <div className="text-[10px] text-zinc-500 truncate">{ex.shortName}</div>
+                    <div className="flex items-baseline gap-0.5">
+                      <input
+                        type="number"
+                        step="2.5"
+                        value={ex.oneRepMax || ''}
+                        onChange={(e) => handleUpdate1RM(ex.id, e.target.value)}
+                        className="w-12 bg-transparent font-mono tabular text-xs font-bold text-emerald-400 focus:outline-none"
+                      />
+                      <span className="text-[9px] text-zinc-500 font-mono">кг</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden sm:flex items-center gap-1.5 bg-surface border border-borderSubtle rounded-xl p-1.5">
+                <span className="text-[11px] font-mono text-zinc-400 px-1.5">
+                  {timerRunning ? `⏱ ${formatTime(timerSec)}` : 'Отдых:'}
+                </span>
+                {[
+                  { label: '60с', sec: 60 },
+                  { label: '3м', sec: 180 },
+                  { label: '5м', sec: 300 },
+                ].map((t) => (
+                  <button
+                    key={t.sec}
+                    onClick={() => startTimer(t.sec)}
+                    className="px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-700/80 font-mono text-xs text-zinc-200 hover:bg-zinc-800 active:scale-95 transition-all"
+                  >
+                    {t.label}
+                  </button>
+                ))}
+                {timerRunning && (
+                  <button
+                    onClick={() => { triggerHaptic(); setTimerRunning(false); }}
+                    className="px-2 py-1 rounded-lg bg-red-500/20 text-red-300 font-mono text-xs"
+                  >
+                    Стоп
+                  </button>
+                )}
+              </div>
+            </div>
+          </header>
+
+          {timerRunning && (
+            <div className="mt-3 bg-surface border border-emerald-500/40 rounded-2xl p-3 flex items-center justify-between gap-4 shadow-lg">
+              <div className="flex items-center gap-3 flex-1">
+                <span className="font-mono tabular text-lg font-bold text-emerald-400">
+                  ⏱ {formatTime(timerSec)}
+                </span>
+                <div className="flex-1 h-2 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+                  <div
+                    style={{ width: `${Math.max(0, (timerSec / timerTotal) * 100)}%` }}
+                    className="h-full bg-emerald-400 transition-all duration-1000 linear"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={() => { triggerHaptic(); setTimerRunning(false); }}
+                className="px-2.5 py-1 rounded-lg bg-zinc-800 text-xs font-mono text-zinc-300 hover:text-white"
+              >
+                Сброс
+              </button>
+            </div>
+          )}
+
+          {/* ================= TAB 1: ПРОГРАММА 13 НЕДЕЛЬ ================= */}
+          {activeTab === 'workout' && (
+            <div className="space-y-4 mt-4">
+              <div className="bg-surface border border-borderSubtle rounded-2xl p-3.5">
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-medium">
+                    Цикл подготовки (13 недель):
+                  </span>
+                  <span className="text-xs font-semibold text-emerald-400">{weekObj.title}</span>
+                </div>
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                  {BUILTIN_13_WEEKS.map((w) => (
+                    <button
+                      key={w.week}
+                      onClick={() => {
+                        triggerHaptic();
+                        setSelectedWeek(w.week);
+                        setSelectedDayIdx(0);
+                      }}
+                      className={`px-3.5 py-1.5 rounded-xl font-mono tabular text-xs font-medium border shrink-0 transition-all ${
+                        selectedWeek === w.week
+                          ? 'bg-emerald-500 text-zinc-950 border-emerald-400 font-bold shadow-md shadow-emerald-500/15'
+                          : 'bg-[#0B0B0E] text-zinc-400 border-zinc-800 hover:text-zinc-200'
+                      }`}
+                    >
+                      Нед {w.week}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="lg:col-span-5 space-y-4">
+                  <div className="bg-surface border border-borderSubtle rounded-2xl p-4">
+                    <div className="text-xs font-semibold text-zinc-200 mb-2.5">Тренировочный день</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {weekObj.days.map((d, idx) => (
+                        <button
+                          key={d.day}
+                          onClick={() => { triggerHaptic(); setSelectedDayIdx(idx); }}
+                          className={`py-2.5 px-3 rounded-xl text-xs font-semibold border transition-all ${
+                            selectedDayIdx === idx
+                              ? 'bg-zinc-100 text-zinc-950 border-zinc-100 shadow'
+                              : 'bg-[#0B0B0E] text-zinc-400 border-zinc-800 hover:text-zinc-200'
+                          }`}
+                        >
+                          {d.day}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-borderSubtle">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[11px] text-zinc-400">Авто-регуляция дня:</span>
+                        <span className="font-mono tabular text-xs font-semibold text-emerald-400">
+                          {readinessShift > 0 ? `+${readinessShift}%` : `${readinessShift}%`}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {[
+                          { label: '-5%', val: -5 },
+                          { label: '-2.5%', val: -2.5 },
+                          { label: '0% План', val: 0 },
+                          { label: '+2.5%', val: 2.5 },
+                        ].map((opt) => (
+                          <button
+                            key={opt.val}
+                            onClick={() => { triggerHaptic(); setReadinessShift(opt.val); }}
+                            className={`py-1.5 rounded-lg font-mono text-[11px] border ${
+                              readinessShift === opt.val
+                                ? 'bg-zinc-800 border-zinc-500 text-zinc-100'
+                                : 'bg-[#0C0C0F] border-zinc-800/80 text-zinc-500'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {activePlateTarget && (
+                    <Barbell3DVisualizer
+                      targetWeight={activePlateTarget.weight}
+                      barbellWeight={activePlateTarget.barbell}
+                      title={activePlateTarget.title}
+                    />
+                  )}
+                </div>
+
+                <div className="lg:col-span-7">
+                  <div className="bg-surface border border-borderSubtle rounded-2xl overflow-hidden shadow-xl">
+                    <div className="px-4 py-3.5 border-b border-borderSubtle flex items-center justify-between">
+                      <div>
+                        <h2 className="text-sm font-semibold text-zinc-100">{dayObj.title}</h2>
+                        <p className="text-[11px] text-zinc-500">
+                          Выполнено подходов: {completedSetsCount} из {flatDaySets.length}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[10px] uppercase text-zinc-500">Тоннаж</div>
+                        <div className="font-mono tabular text-sm font-semibold text-emerald-400">
+                          {dayTonnage} кг
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="divide-y divide-borderSubtle">
+                      {computedDayItems.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className={`p-4 transition-colors ${item.isBase ? 'bg-emerald-950/10' : ''}`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-mono text-xs text-zinc-500">{idx + 1}.</span>
+                                <span className="text-sm font-semibold text-zinc-100">{item.name}</span>
+                                {item.isBase && (
+                                  <span className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                    БАЗА · 1ПМ {item.oneRepMax} кг
+                                  </span>
+                                )}
+                              </div>
+                              {item.note && <p className="text-[11px] text-zinc-400 mt-1">{item.note}</p>}
+                            </div>
+                          </div>
+
+                          <div className="mt-3 space-y-2.5">
+                            {item.computedBlocks.map((b, bIdx) => (
+                              <div
+                                key={bIdx}
+                                onClick={() => {
+                                  if (b.weightKg) {
+                                    triggerHaptic();
+                                    setActivePlateTarget({
+                                      weight: b.weightKg,
+                                      barbell: b.barbellWeight || 20,
+                                      title: `${item.name} · ${b.effectivePct}% × ${b.reps} повт.`,
+                                    });
+                                  }
+                                }}
+                                className={`p-3 rounded-xl bg-[#0B0B0E] border border-zinc-800/90 ${
+                                  b.weightKg ? 'cursor-pointer hover:border-zinc-600' : ''
+                                }`}
+                              >
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    {b.weightKg ? (
+                                      <>
+                                        <span className="font-mono tabular text-base font-bold text-emerald-400">
+                                          {b.weightKg} кг
+                                        </span>
+                                        <span className="font-mono tabular text-[11px] text-zinc-400">
+                                          ({b.effectivePct}% × {b.reps} повт. × {b.sets} подх.)
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span className="font-mono tabular text-xs text-zinc-300">
+                                        Подсобка: {b.reps} повт. × {b.sets} подх. (вес свой)
+                                      </span>
+                                    )}
+                                  </div>
+                                  {b.weightKg && <span className="text-[10px] font-mono text-zinc-500">3D Штанга →</span>}
+                                </div>
+
+                                <div className="flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                  {Array.from({ length: b.sets }).map((_, sIdx) => {
+                                    const setKey = `${b.blockKey}-s${sIdx}`;
+                                    const done = !!completedSets[setKey];
+                                    const isNextFocus = nextPendingSet?.setKey === setKey;
+                                    return (
+                                      <button
+                                        key={sIdx}
+                                        onClick={() => toggleSet(setKey, item.isBase, b.effectivePct)}
+                                        className={`h-10 min-w-[68px] px-3 rounded-lg font-mono tabular text-xs font-semibold border flex items-center justify-center gap-1 transition-all active:scale-95 ${
+                                          done
+                                            ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                                            : isNextFocus
+                                            ? 'bg-zinc-800 border-emerald-400/80 text-zinc-50 ring-1 ring-emerald-400/40'
+                                            : 'bg-surface border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                                        }`}
+                                      >
+                                        <span>#{sIdx + 1}</span>
+                                        <span>·</span>
+                                        <span>{b.reps}</span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= TAB 2: РЕЦЕПТЫ («ПП ГОЛОВНОГО МОЗГА») ================= */}
+          {activeTab === 'recipes' && (
+            <div className="mt-4 space-y-4">
+              <div className="bg-surface border border-borderSubtle rounded-2xl p-4 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-bold text-zinc-50">Рецепты · «Пп головного мозга»</h2>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    Категория: <span className="text-emerald-400 font-medium">{recipeCategory}</span> ({filteredRecipes.length} блюд)
+                  </p>
+                </div>
+                <button
+                  onClick={() => { triggerHaptic(); setIsFilterSheetOpen(true); }}
+                  className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-semibold text-zinc-100 flex items-center gap-1.5 active:scale-95"
+                >
+                  <span>Фильтры</span>
+                  <span className="px-1.5 py-0.2 bg-emerald-500/20 text-emerald-400 rounded font-mono text-[10px]">
+                    {recipeCategory === 'Все' ? '6' : '1'}
+                  </span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {filteredRecipes.map((meal) => (
+                  <div
+                    key={meal.id}
+                    onClick={() => { triggerHaptic(); setActiveRecipeSheet(meal); }}
+                    className="bg-surface border border-borderSubtle hover:border-zinc-700 rounded-2xl p-4 cursor-pointer transition-all active:scale-[0.99] flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="px-2 py-0.5 text-[10px] font-mono uppercase rounded-full bg-zinc-800 text-zinc-300">
+                          {meal.category}
+                        </span>
+                        {meal.video && (
+                          <span className="px-2 py-0.5 text-[10px] font-mono rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            ▶ Видео-рецепт
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-sm font-semibold text-zinc-100 leading-snug">{meal.name}</h3>
+                      <p className="text-[11px] text-zinc-500 mt-1.5 line-clamp-2">{meal.ingredients}</p>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-zinc-800/80 flex items-center justify-between">
+                      <div className="font-mono tabular text-xs">
+                        <span className="font-bold text-emerald-400">{meal.kcal} ккал</span>
+                        <span className="text-zinc-500 ml-2">Б {meal.p} · Ж {meal.f} · У {meal.c}</span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addMealToLog(meal);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-mono text-xs font-bold active:scale-95"
+                      >
+                        + В рацион
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ================= TAB 3: ХОЛОДИЛЬНИК & РАЦИОН ================= */}
+          {activeTab === 'fridge' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-4">
+              <div className="lg:col-span-6 space-y-4">
+                <div className="bg-surface border border-borderSubtle rounded-2xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-sm font-semibold text-zinc-100">Холодильник · Что есть дома?</h2>
+                    <button
+                      onClick={() => { triggerHaptic(); setSelectedFridgeItems([]); }}
+                      className="text-[11px] text-zinc-500 hover:text-zinc-300 underline"
+                    >
+                      Сбросить
+                    </button>
+                  </div>
+                  <p className="text-xs text-zinc-500 mb-3">
+                    Отметь продукты, которые есть на кухне — система подберёт подходящие ПП-рецепты.
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    {FRIDGE_PRODUCTS.map((prod) => {
+                      const active = selectedFridgeItems.includes(prod.id);
+                      return (
+                        <button
+                          key={prod.id}
+                          onClick={() => toggleFridgeItem(prod.id)}
+                          className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all active:scale-95 ${
+                            active
+                              ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300 font-semibold'
+                              : 'bg-[#0B0B0E] border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                          }`}
+                        >
+                          {active ? '✓ ' : '+ '}
+                          {prod.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-borderSubtle space-y-2">
+                    <div className="text-[11px] uppercase tracking-wider text-zinc-500 font-medium">
+                      Можно приготовить ({fridgeMatchedRecipes.length}):
+                    </div>
+                    {fridgeMatchedRecipes.length === 0 ? (
+                      <p className="text-xs text-zinc-600 py-2">Выбери хотя бы 1–2 продукта выше.</p>
+                    ) : (
+                      fridgeMatchedRecipes.map((m) => (
+                        <div
+                          key={m.id}
+                          onClick={() => { triggerHaptic(); setActiveRecipeSheet(m); }}
+                          className="p-3 rounded-xl bg-[#0B0B0E] border border-zinc-800 hover:border-zinc-700 cursor-pointer flex items-center justify-between gap-2"
+                        >
+                          <div className="min-w-0">
+                            <div className="text-xs font-semibold text-zinc-100 truncate">{m.name}</div>
+                            <div className="font-mono text-[10px] text-emerald-400 mt-0.5">
+                              Совпадений: {m.hits} · {m.kcal} ккал (Б {m.p}г)
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); addMealToLog(m); }}
+                            className="px-2.5 py-1.5 rounded-lg bg-zinc-800 text-emerald-400 font-mono text-xs font-bold shrink-0"
+                          >
+                            +
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-6 space-y-4">
+                <div className="bg-surface border border-borderSubtle rounded-2xl p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <div className="text-xs text-zinc-500">Рацион за сегодня</div>
+                      <div className="font-mono tabular text-2xl font-bold text-zinc-100 mt-0.5">
+                        {nutritionTotals.kcal}{' '}
+                        <span className="text-sm font-normal text-zinc-500">/ {targetKcal} ккал</span>
+                      </div>
+                    </div>
+                    <div className="flex items-baseline gap-1 bg-[#0B0B0E] border border-zinc-800 rounded-xl px-3 py-1.5">
+                      <span className="text-[10px] text-zinc-500 mr-1">Вес:</span>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={nutritionLog.bodyweight}
+                        onChange={(e) =>
+                          setNutritionLog((prev) => ({ ...prev, bodyweight: parseFloat(e.target.value) || 0 }))
+                        }
+                        className="w-12 bg-transparent font-mono tabular text-sm font-bold text-zinc-100 text-right focus:outline-none"
+                      />
+                      <span className="text-[11px] font-mono text-zinc-500">кг</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    <button
+                      onClick={() => { triggerHaptic(); setNutritionLog((p) => ({ ...p, dayType: 'workout' })); }}
+                      className={`py-2 px-3 rounded-xl text-xs font-medium border ${
+                        nutritionLog.dayType === 'workout'
+                          ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                          : 'bg-[#0B0B0E] border-zinc-800 text-zinc-400'
+                      }`}
+                    >
+                      Тренировочный (3000)
+                    </button>
+                    <button
+                      onClick={() => { triggerHaptic(); setNutritionLog((p) => ({ ...p, dayType: 'rest' })); }}
+                      className={`py-2 px-3 rounded-xl text-xs font-medium border ${
+                        nutritionLog.dayType === 'rest'
+                          ? 'bg-zinc-800 border-zinc-600 text-zinc-100'
+                          : 'bg-[#0B0B0E] border-zinc-800 text-zinc-400'
+                      }`}
+                    >
+                      День отдыха (2500)
+                    </button>
+                  </div>
+
+                  <div className="w-full h-2.5 bg-[#0B0B0E] rounded-full overflow-hidden border border-zinc-800 mb-5">
+                    <div
+                      style={{ width: `${Math.min(100, (nutritionTotals.kcal / targetKcal) * 100)}%` }}
+                      className="h-full bg-emerald-500 transition-all duration-300"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="p-3 rounded-xl bg-[#0B0B0E] border border-zinc-800">
+                      <div className="text-[11px] text-zinc-500">Белки</div>
+                      <div className="font-mono tabular text-base font-bold text-emerald-400 mt-0.5">
+                        {Math.round(nutritionTotals.p)} / {targetProtein} г
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-[#0B0B0E] border border-zinc-800">
+                      <div className="text-[11px] text-zinc-500">Жиры</div>
+                      <div className="font-mono tabular text-base font-bold text-zinc-100 mt-0.5">
+                        {Math.round(nutritionTotals.f)} г
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-[#0B0B0E] border border-zinc-800">
+                      <div className="text-[11px] text-zinc-500">Углеводы</div>
+                      <div className="font-mono tabular text-base font-bold text-zinc-100 mt-0.5">
+                        {Math.round(nutritionTotals.c)} г
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 pt-4 border-t border-borderSubtle space-y-1.5">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-zinc-400">Съедено сегодня:</span>
+                      {nutritionLog.entries.length > 0 && (
+                        <button
+                          onClick={() => { triggerHaptic(); setNutritionLog((p) => ({ ...p, entries: [] })); }}
+                          className="text-[11px] text-zinc-500 hover:text-zinc-300 underline"
+                        >
+                          Очистить
+                        </button>
+                      )}
+                    </div>
+                    {nutritionLog.entries.length === 0 ? (
+                      <div className="text-xs text-zinc-600 py-3">Пока пусто. Добавь блюда из вкладки «Рецепты».</div>
+                    ) : (
+                      nutritionLog.entries.map((item, idx) => (
+                        <div
+                          key={item.uid || idx}
+                          className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#0B0B0E] border border-zinc-800 text-xs"
+                        >
+                          <span className="text-zinc-200 truncate pr-2">{item.name}</span>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="font-mono tabular text-zinc-400">{item.kcal} ккал</span>
+                            <button
+                              onClick={() => {
+                                triggerHaptic();
+                                setNutritionLog((p) => ({
+                                  ...p,
+                                  entries: p.entries.filter((_, i) => i !== idx),
+                                }));
+                              }}
+                              className="text-zinc-500 hover:text-red-400 font-mono"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= TAB 4: КАЛЬКУЛЯТОР 1ПМ, DOTS & БЭКАП ================= */}
+          {activeTab === 'calc' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-4">
+              <div className="lg:col-span-7 bg-surface border border-borderSubtle rounded-2xl p-5">
+                <h2 className="text-sm font-semibold text-zinc-100">Твои 1ПМ: Жим, Присед, Становая</h2>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Любое изменение здесь мгновенно пересчитывает все 13 недель программы «Путь до 100 кг».
+                </p>
+
+                <div className="mt-4 space-y-3">
+                  {exercises.map((ex) => (
+                    <div
+                      key={ex.id}
+                      className="flex items-center justify-between p-3.5 rounded-xl bg-[#0B0B0E] border border-zinc-800/90"
+                    >
+                      <div>
+                        <div className="text-sm font-medium text-zinc-100">{ex.name}</div>
+                        <div className="text-[11px] font-mono text-zinc-500">Гриф {ex.barbellWeight} кг · Шаг 2.5 кг</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleUpdate1RM(ex.id, ex.oneRepMax - 2.5)}
+                          className="w-9 h-9 rounded-lg bg-zinc-900 border border-zinc-700 font-mono text-xs text-zinc-300"
+                        >
+                          -2.5
+                        </button>
+                        <div className="flex items-baseline bg-surface border border-zinc-700 rounded-lg px-3 py-1.5">
+                          <input
+                            type="number"
+                            step="2.5"
+                            value={ex.oneRepMax || ''}
+                            onChange={(e) => handleUpdate1RM(ex.id, e.target.value)}
+                            className="w-16 text-center bg-transparent font-mono tabular text-base font-bold text-emerald-400 focus:outline-none"
+                          />
+                          <span className="text-xs text-zinc-500 font-mono">кг</span>
+                        </div>
+                        <button
+                          onClick={() => handleUpdate1RM(ex.id, ex.oneRepMax + 2.5)}
+                          className="w-9 h-9 rounded-lg bg-zinc-900 border border-zinc-700 font-mono text-xs text-zinc-300"
+                        >
+                          +2.5
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-5 pt-4 border-t border-borderSubtle">
+                  <div className="p-3.5 rounded-xl bg-[#0B0B0E] border border-zinc-800">
+                    <div className="text-[10px] uppercase text-zinc-500">Сумма троеборья (SBD)</div>
+                    <div className="font-mono tabular text-xl font-bold text-zinc-100 mt-1">{sbdTotal} кг</div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-[#0B0B0E] border border-zinc-800">
+                    <div className="text-[10px] uppercase text-zinc-500">Коэффициент DOTS</div>
+                    <div className="font-mono tabular text-xl font-bold text-emerald-400 mt-1">{dotsScore}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-5 space-y-4">
+                <div className="bg-surface border border-borderSubtle rounded-2xl p-5">
+                  <h3 className="text-sm font-semibold text-zinc-100">Калькулятор e1RM (Эпли / Бжицки)</h3>
+                  <div className="mt-3">
+                    <label className="text-[11px] text-zinc-500 block mb-1">Упражнение:</label>
+                    <select
+                      value={calcExId}
+                      onChange={(e) => setCalcExId(e.target.value)}
+                      className="w-full bg-[#0B0B0E] border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none"
+                    >
+                      {exercises.map((ex) => (
+                        <option key={ex.id} value={ex.id}>{ex.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <div className="bg-[#0B0B0E] border border-zinc-800 rounded-lg p-3">
+                      <label className="text-[11px] text-zinc-500 block">Вес (кг)</label>
+                      <input
+                        type="number"
+                        step="2.5"
+                        value={calcWeight}
+                        onChange={(e) => setCalcWeight(parseFloat(e.target.value) || 0)}
+                        className="w-full mt-1 bg-transparent font-mono tabular text-lg font-bold text-zinc-100 focus:outline-none"
+                      />
+                    </div>
+                    <div className="bg-[#0B0B0E] border border-zinc-800 rounded-lg p-3">
+                      <label className="text-[11px] text-zinc-500 block">Повторения</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={calcReps}
+                        onChange={(e) => setCalcReps(parseInt(e.target.value, 10) || 1)}
+                        className="w-full mt-1 bg-transparent font-mono tabular text-lg font-bold text-zinc-100 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 p-4 rounded-xl bg-[#0B0B0E] border border-emerald-500/20 flex items-center justify-between">
+                    <div>
+                      <div className="text-[11px] text-zinc-400">Расчетный 1ПМ:</div>
+                      <div className="font-mono tabular text-2xl font-bold text-emerald-400">
+                        {calculateE1RM(calcWeight, calcReps)} кг
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleUpdate1RM(calcExId, roundToStep(calculateE1RM(calcWeight, calcReps), 2.5, 20))}
+                      className="px-3 py-2 rounded-lg bg-emerald-500 text-zinc-950 text-xs font-bold hover:bg-emerald-400 active:scale-95"
+                    >
+                      В базу 1ПМ
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-surface border border-borderSubtle rounded-2xl p-4 flex items-center justify-between">
+                  <span className="text-xs text-zinc-400">Резервная копия данных:</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleExportBackup}
+                      className="px-3 py-1.5 rounded-lg bg-zinc-100 text-zinc-950 text-xs font-semibold"
+                    >
+                      Экспорт JSON
+                    </button>
+                    <button
+                      onClick={() => importJsonRef.current?.click()}
+                      className="px-3 py-1.5 rounded-lg bg-[#0B0B0E] border border-zinc-700 text-zinc-300 text-xs"
+                    >
+                      Импорт
+                    </button>
+                    <input
+                      ref={importJsonRef}
+                      type="file"
+                      accept="application/json"
+                      className="hidden"
+                      onChange={(e) => handleImportBackup(e.target.files?.[0])}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= BOTTOM SHEET: КАРТОЧКА РЕЦЕПТА С ЧЕК-ЛИСТОМ ИНГРЕДИЕНТОВ ================= */}
+          <BottomSheet
+            isOpen={!!activeRecipeSheet}
+            onClose={() => setActiveRecipeSheet(null)}
+            title={activeRecipeSheet?.name || ''}
+            subtitle={activeRecipeSheet ? `${activeRecipeSheet.category} · ${activeRecipeSheet.portionNote}` : ''}
+          >
+            {activeRecipeSheet && (
+              <div>
+                <div className="grid grid-cols-4 gap-2 my-3">
+                  <div className="p-2.5 rounded-xl bg-[#0B0B0E] border border-zinc-800 text-center">
+                    <div className="text-[10px] text-zinc-500">Калории</div>
+                    <div className="font-mono tabular text-sm font-bold text-emerald-400">{activeRecipeSheet.kcal}</div>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-[#0B0B0E] border border-zinc-800 text-center">
+                    <div className="text-[10px] text-zinc-500">Белки</div>
+                    <div className="font-mono tabular text-sm font-bold text-zinc-100">{activeRecipeSheet.p} г</div>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-[#0B0B0E] border border-zinc-800 text-center">
+                    <div className="text-[10px] text-zinc-500">Жиры</div>
+                    <div className="font-mono tabular text-sm font-bold text-zinc-100">{activeRecipeSheet.f} г</div>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-[#0B0B0E] border border-zinc-800 text-center">
+                    <div className="text-[10px] text-zinc-500">Углеводы</div>
+                    <div className="font-mono tabular text-sm font-bold text-zinc-100">{activeRecipeSheet.c} г</div>
+                  </div>
+                </div>
+
+                {activeRecipeSheet.video && (
+                  <div className="my-3 rounded-xl overflow-hidden bg-[#060608] border border-zinc-800">
+                    <video
+                      src={activeRecipeSheet.video}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="w-full max-h-60 object-contain bg-black"
+                    />
+                  </div>
+                )}
+
+                <div className="mt-3 p-3.5 rounded-xl bg-[#0B0B0E] border border-zinc-800/90">
+                  <div className="text-[11px] font-semibold text-zinc-300 mb-2">
+                    Ингредиенты (нажимай, чтобы отметить):
+                  </div>
+                  <div className="space-y-1.5">
+                    {activeRecipeSheet.ingredients.split(',').map((ing, i) => {
+                      const cleanIng = ing.trim().replace(/\.$/, '');
+                      if (!cleanIng) return null;
+                      const isChecked = !!checkedIngredients[`${activeRecipeSheet.id}-${i}`];
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => toggleIngredientCheck(activeRecipeSheet.id, i)}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-xs flex items-center gap-2.5 border transition-colors ${
+                            isChecked
+                              ? 'bg-emerald-500/10 border-emerald-500/30 text-zinc-500 line-through'
+                              : 'bg-surface border-zinc-800/80 text-zinc-200'
+                          }`}
+                        >
+                          <span className={`w-4 h-4 rounded flex items-center justify-center font-mono text-[10px] border ${
+                            isChecked ? 'bg-emerald-500 border-emerald-400 text-zinc-950 font-bold' : 'border-zinc-600'
+                          }`}>
+                            {isChecked ? '✓' : ''}
+                          </span>
+                          <span>{cleanIng}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="mt-3 p-3.5 rounded-xl bg-[#0B0B0E] border border-zinc-800/90 text-xs">
+                  <div className="text-[11px] font-semibold text-zinc-300 mb-1">Приготовление:</div>
+                  <p className="text-zinc-400 leading-relaxed">{activeRecipeSheet.steps}</p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    addMealToLog(activeRecipeSheet);
+                    setActiveRecipeSheet(null);
+                  }}
+                  className="w-full mt-4 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+                >
+                  + Добавить в рацион ({activeRecipeSheet.kcal} ккал)
+                </button>
+              </div>
+            )}
+          </BottomSheet>
+
+          {/* ================= BOTTOM SHEET: ФИЛЬТР КАТЕГОРИЙ РЕЦЕПТОВ ================= */}
+          <BottomSheet
+            isOpen={isFilterSheetOpen}
+            onClose={() => setIsFilterSheetOpen(false)}
+            title="Фильтр рецептов по приему пищи"
+            subtitle="Пп головного мозга"
+          >
+            <div className="grid grid-cols-2 gap-2.5 mt-3">
+              {['Все', 'Завтрак', 'Обед', 'Ужин', 'Десерты', 'Салаты', 'Выпечка'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => {
+                    triggerHaptic();
+                    setRecipeCategory(cat);
+                    setIsFilterSheetOpen(false);
+                  }}
+                  className={`py-3 px-4 rounded-xl text-xs font-semibold border text-left flex items-center justify-between ${
+                    recipeCategory === cat
+                      ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                      : 'bg-[#0B0B0E] border-zinc-800 text-zinc-300'
+                  }`}
+                >
+                  <span>{cat}</span>
+                  {recipeCategory === cat && <span>✓</span>}
+                </button>
+              ))}
+            </div>
+          </BottomSheet>
+
+          {/* ================= FLOATING ACTION BAR: «СЛЕДУЮЩИЙ ПОДХОД» ================= */}
+          {activeTab === 'workout' && (
+            <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-0 right-0 px-4 z-40 pointer-events-none">
+              <div className="max-w-xl mx-auto pointer-events-auto">
+                <div className="ios-glass-card border border-zinc-700/80 rounded-2xl p-2.5 shadow-[0_14px_40px_rgba(0,0,0,0.85)] flex items-center justify-between gap-3">
+                  {nextPendingSet ? (
+                    <>
+                      <div className="pl-2 min-w-0">
+                        <div className="text-[10px] uppercase tracking-wider text-zinc-400 truncate">
+                          {nextPendingSet.exerciseName}
+                        </div>
+                        <div className="font-mono tabular text-sm font-bold text-zinc-100 truncate">
+                          {nextPendingSet.weightKg
+                            ? `${nextPendingSet.weightKg} кг × ${nextPendingSet.reps} повт. (#${nextPendingSet.setNumber})`
+                            : `${nextPendingSet.reps} повт. · Подход #${nextPendingSet.setNumber}`}
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleCompleteNextSet}
+                        className="shrink-0 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold tracking-tight shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+                      >
+                        Следующий подход ✓
+                      </button>
+                    </>
+                  ) : (
+                    <div className="w-full py-1.5 text-center text-xs font-semibold text-emerald-400">
+                      🎉 Все подходы сегодняшней тренировки выполнены!
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= FIXED iOS TAB BAR (Нижняя панель с размытием 20px) ================= */}
+          <nav className="fixed bottom-0 left-0 right-0 ios-tab-bar border-t border-zinc-800/80 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-50">
+            <div className="max-w-xl mx-auto grid grid-cols-4 gap-1">
+              {[
+                { id: 'workout', label: '13 Недель', icon: '🏋️' },
+                { id: 'recipes', label: 'Рецепты', icon: '🥗' },
+                { id: 'fridge', label: 'Холодильник', icon: '🧊' },
+                { id: 'calc', label: 'Калькулятор', icon: '⚡' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => switchTab(tab.id)}
+                  className={`py-1.5 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all active:scale-95 ${
+                    activeTab === tab.id
+                      ? 'bg-zinc-800/90 text-emerald-400 font-semibold'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  <span className="text-sm leading-none">{tab.icon}</span>
+                  <span className="text-[11px]">{tab.label}</span>
+                </button>
+              ))}
+            </div>
+          </nav>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
