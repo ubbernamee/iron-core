@@ -1,3 +1,4 @@
+import { enableBackgroundPush, scheduleBackgroundPush, sendLocalRestNotification } from './services/webPush';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatedNumber } from './components/AnimatedNumber';
 import { BarbellWebGL3D } from './components/BarbellWebGL3D';
@@ -13,7 +14,6 @@ import {
   pullBackupFromCloud,
   pushBackupToCloud,
 } from './services/cloudSync';
-import { enableBackgroundPush, sendLocalRestNotification } from './services/webPush';
 import { LivingAuroraBackdrop, TAB_THEMES } from './components/LivingAuroraBackdrop';
 import { PwaUpdateBanner } from './components/PwaUpdateBanner';
 import {
@@ -563,6 +563,7 @@ export default function App() {
       setTimerEndTime(end);
       setTimerSec(sec);
       setTimerRunning(true);
+      void scheduleBackgroundPush(sec, 'IRON CORE · Отдых завершён!', 'Пора выходить на следующий подход 💪');
       if (!isNativeApp && iosSettings.shortcutsIslandEnabled) {
         NativeiOSBridge.triggerShortcutsDynamicIslandTimer(sec, iosSettings.shortcutName);
       }
