@@ -600,7 +600,7 @@ export default function App() {
     try {
       localStorage.setItem('ironcore_visual_theme_v1', JSON.stringify(visualTheme));
       document.body.classList.add('ic-sky-mode');
-      document.body.style.backgroundColor = '#eef6fb';
+      document.body.style.backgroundColor = '#0b395c';
     } catch {}
     return () => {
       document.body.classList.remove('ic-sky-mode');
