@@ -1,0 +1,271 @@
+/* ==========================================================================
+   IRON CORE — Full "Airy Sky & White Glass" Design System (Пульсмед Aesthetic)
+   Applies globally via body.ic-sky-mode (including portals & BottomSheets)
+   ========================================================================== */
+
+:root {
+  --ic-bg-canvas: #eef6fb;
+  --ic-surface-white: #ffffff;
+  --ic-surface-ice: #f3f9fd;
+  --ic-surface-ice-hover: #e7f3fa;
+  --ic-border-soft: rgba(25, 118, 172, 0.13);
+  --ic-border-strong: rgba(25, 118, 172, 0.24);
+  --ic-ink-primary: #0d2538;
+  --ic-ink-secondary: #4c6a80;
+  --ic-ink-muted: #7c97ac;
+  --ic-sky-primary: #1f86c0;
+  --ic-sky-bright: #3ea4d8;
+  --ic-sky-soft: #e4f3fc;
+  --ic-shadow-card: 0 10px 30px rgba(17, 87, 130, 0.07), 0 2px 6px rgba(17, 87, 130, 0.04);
+  --ic-shadow-float: 0 14px 36px rgba(17, 87, 130, 0.14), 0 2px 8px rgba(17, 87, 130, 0.06);
+}
+
+/* Global canvas */
+body.ic-sky-mode {
+  background-color: var(--ic-bg-canvas) !important;
+  color: var(--ic-ink-primary) !important;
+}
+
+body.ic-sky-mode .ic-sky-app {
+  position: relative;
+  min-height: 100dvh;
+  color: var(--ic-ink-primary);
+  background:
+    radial-gradient(ellipse 90% 420px at 50% -60px, rgba(62, 164, 216, 0.22), transparent 72%),
+    radial-gradient(circle at 88% 14%, rgba(122, 198, 232, 0.2), transparent 40%),
+    var(--ic-bg-canvas);
+  overflow-x: clip;
+}
+
+/* ================= CARDS, WELLS & PILLS ================= */
+body.ic-sky-mode .slate-card {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border: 1px solid var(--ic-border-soft) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  box-shadow: var(--ic-shadow-card) !important;
+  color: var(--ic-ink-primary) !important;
+}
+
+body.ic-sky-mode .slate-well {
+  background: var(--ic-surface-ice) !important;
+  border: 1px solid var(--ic-border-soft) !important;
+  box-shadow: none !important;
+  color: var(--ic-ink-primary) !important;
+}
+
+body.ic-sky-mode .slate-pill {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border: 1px solid var(--ic-border-soft) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: 0 4px 12px rgba(17, 87, 130, 0.06) !important;
+  color: var(--ic-ink-primary) !important;
+}
+
+/* ================= FLOATING ACTION BAR & TAB BAR ================= */
+body.ic-sky-mode .ios-glass-card {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border: 1px solid rgba(31, 134, 192, 0.2) !important;
+  backdrop-filter: blur(22px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(160%) !important;
+  box-shadow: var(--ic-shadow-float) !important;
+  color: var(--ic-ink-primary) !important;
+}
+
+body.ic-sky-mode .ios-blur-bar {
+  background: rgba(255, 255, 255, 0.86) !important;
+  border-top: 1px solid rgba(31, 134, 192, 0.14) !important;
+  backdrop-filter: blur(24px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+}
+
+/* Magnetic sliding pill in TabBar & Segmented Controls */
+body.ic-sky-mode nav.ios-blur-bar .magnetic-pill > div {
+  background: var(--ic-sky-soft) !important;
+  border: 1px solid rgba(31, 134, 192, 0.22) !important;
+  box-shadow: none !important;
+}
+
+body.ic-sky-mode nav.ios-blur-bar button.text-slate-50 {
+  color: var(--ic-sky-primary) !important;
+}
+
+body.ic-sky-mode nav.ios-blur-bar button.text-slate-400 {
+  color: var(--ic-ink-muted) !important;
+}
+
+/* ================= TYPOGRAPHY & CONTRAST ================= */
+body.ic-sky-mode .text-slate-50,
+body.ic-sky-mode .text-slate-100,
+body.ic-sky-mode .text-white {
+  color: var(--ic-ink-primary) !important;
+}
+
+/* Keep pure white text inside HeroShowcaseV2 and primary sky-blue buttons */
+body.ic-sky-mode .ic-hero-v2,
+body.ic-sky-mode .ic-hero-v2 *,
+body.ic-sky-mode .ic-hero-v2 .text-white {
+  color: #ffffff;
+}
+body.ic-sky-mode .ic-hero-v2 .ic-hero-v2__cta-primary,
+body.ic-sky-mode .ic-hero-v2 .ic-hero-v2__cta-primary * {
+  color: #165a82 !important;
+}
+
+body.ic-sky-mode .text-slate-200,
+body.ic-sky-mode .text-slate-300 {
+  color: var(--ic-ink-secondary) !important;
+}
+
+body.ic-sky-mode .text-slate-400,
+body.ic-sky-mode .text-slate-500 {
+  color: var(--ic-ink-muted) !important;
+}
+
+/* Accent text colors adapted for crisp light-mode readability */
+body.ic-sky-mode .text-sky-300,
+body.ic-sky-mode .text-sky-200 {
+  color: #1877ae !important;
+}
+
+body.ic-sky-mode .text-emerald-300,
+body.ic-sky-mode .text-emerald-200,
+body.ic-sky-mode .text-teal-300,
+body.ic-sky-mode .text-teal-200 {
+  color: #0e8a6b !important;
+}
+
+body.ic-sky-mode .text-amber-300,
+body.ic-sky-mode .text-amber-200 {
+  color: #c27803 !important;
+}
+
+body.ic-sky-mode .text-violet-300 {
+  color: #5b48c8 !important;
+}
+
+body.ic-sky-mode .text-rose-300,
+body.ic-sky-mode .text-rose-200 {
+  color: #d6335c !important;
+}
+
+/* ================= DARK BACKGROUNDS -> CLEAN ICE SURFACES ================= */
+body.ic-sky-mode .bg-slate-950,
+body.ic-sky-mode .bg-slate-950\/90,
+body.ic-sky-mode .bg-slate-950\/85,
+body.ic-sky-mode .bg-slate-950\/80,
+body.ic-sky-mode .bg-slate-950\/75,
+body.ic-sky-mode .bg-slate-950\/70,
+body.ic-sky-mode .bg-slate-950\/60,
+body.ic-sky-mode .bg-slate-950\/55 {
+  background-color: #edf5fb !important;
+}
+
+body.ic-sky-mode .bg-slate-900,
+body.ic-sky-mode .bg-slate-900\/90,
+body.ic-sky-mode .bg-slate-900\/80,
+body.ic-sky-mode .bg-slate-900\/70 {
+  background-color: #e6f2fa !important;
+  color: var(--ic-ink-primary) !important;
+}
+
+body.ic-sky-mode .bg-slate-800 {
+  background-color: #d8ebf8 !important;
+  color: var(--ic-ink-primary) !important;
+}
+
+body.ic-sky-mode .bg-slate-100 {
+  background-color: var(--ic-sky-primary) !important;
+  color: #ffffff !important;
+}
+
+body.ic-sky-mode .border-slate-400\/10,
+body.ic-sky-mode .border-slate-400\/15,
+body.ic-sky-mode .border-slate-400\/20,
+body.ic-sky-mode .border-slate-400\/25,
+body.ic-sky-mode .border-slate-400\/30 {
+  border-color: var(--ic-border-soft) !important;
+}
+
+body.ic-sky-mode .divide-slate-400\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(25, 118, 172, 0.1) !important;
+}
+
+/* ================= PRIMARY BUTTONS & ACTIVE STATES ================= */
+body.ic-sky-mode .bg-sky-400,
+body.ic-sky-mode .bg-teal-400,
+body.ic-sky-mode .bg-violet-400 {
+  background: linear-gradient(135deg, #1f86c0 0%, #3ca4d8 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(31, 134, 192, 0.25) !important;
+}
+
+body.ic-sky-mode .bg-emerald-400 {
+  background: linear-gradient(135deg, #129876 0%, #24b891 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(18, 152, 118, 0.22) !important;
+}
+
+body.ic-sky-mode .bg-amber-400 {
+  background: linear-gradient(135deg, #1f86c0 0%, #3ca4d8 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(31, 134, 192, 0.24) !important;
+}
+
+/* Soft tinted action pills */
+body.ic-sky-mode .bg-rose-500\/12 {
+  background-color: rgba(214, 51, 92, 0.08) !important;
+  border-color: rgba(214, 51, 92, 0.2) !important;
+}
+
+/* ================= SET BUTTONS (WORKOUT) ================= */
+body.ic-sky-mode .liquid-set-btn {
+  background: #ffffff !important;
+  border: 1px solid rgba(31, 134, 192, 0.22) !important;
+  color: var(--ic-ink-primary) !important;
+  box-shadow: 0 2px 6px rgba(17, 87, 130, 0.05) !important;
+}
+
+body.ic-sky-mode .liquid-set-btn.next-set-beacon {
+  background: var(--ic-sky-soft) !important;
+  border: 1.5px solid var(--ic-sky-primary) !important;
+  color: #135a85 !important;
+  box-shadow: 0 0 0 3px rgba(31, 134, 192, 0.14) !important;
+}
+
+body.ic-sky-mode .liquid-set-btn.is-done {
+  background: linear-gradient(135deg, #1f86c0 0%, #3ea4d8 100%) !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 16px rgba(31, 134, 192, 0.28) !important;
+}
+
+/* ================= BOTTOM SHEETS & MODALS (CLEAN WHITE GLASS) ================= */
+body.ic-sky-mode [class*="bg-slate-950"][class*="rounded-t-"],
+body.ic-sky-mode [class*="bg-slate-900"][class*="rounded-t-"],
+body.ic-sky-mode [class*="bg-\[\#0"][class*="rounded-t-"],
+body.ic-sky-mode [class*="bg-\[\#0"][class*="rounded-3xl"],
+body.ic-sky-mode [class*="bg-\[\#0"][class*="rounded-\[28px\]"] {
+  background: rgba(255, 255, 255, 0.97) !important;
+  border-color: rgba(31, 134, 192, 0.18) !important;
+  box-shadow: 0 -12px 44px rgba(13, 37, 56, 0.18) !important;
+  color: var(--ic-ink-primary) !important;
+}
+
+/* Inputs & Selects */
+body.ic-sky-mode input,
+body.ic-sky-mode textarea,
+body.ic-sky-mode select {
+  color: var(--ic-ink-primary) !important;
+}
+
+body.ic-sky-mode input::placeholder,
+body.ic-sky-mode textarea::placeholder {
+  color: var(--ic-ink-muted) !important;
+}
+
+body.ic-sky-mode option {
+  background-color: #ffffff !important;
+  color: var(--ic-ink-primary) !important;
+}
