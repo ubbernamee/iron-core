@@ -1,1 +1,78 @@
+name: Build Unsigned iOS IPA
 
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ios-ipa:
+    runs-on: macos-14
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Add iOS platform if missing
+        run: |
+          if [ ! -d "ios" ]; then
+            npx cap add ios
+          fi
+          npx cap sync ios
+
+      - name: Configure iOS project settings for unsigned archive
+        run: |
+          cd ios/App
+          xcodebuild -list -json || true
+          cat << 'EOF' > /tmp/update_pbxproj.rb
+          require 'xcodeproj'
+          project_path = 'App.xcodeproj'
+          project = Xcodeproj::Project.open(project_path)
+          project.targets.each do |target|
+            target.build_configurations.each do |config|
+              config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+              config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
+              config.build_settings['CODE_SIGN_IDENTITY'] = ''
+              config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'com.ironcore.app'
+            end
+          end
+          project.save
+          EOF
+          ruby /tmp/update_pbxproj.rb || true
+
+      - name: Archive iOS App
+        run: |
+          cd ios/App
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            archive -archivePath build/IronCore.xcarchive
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p dist-ipa/Payload
+          cp -R ios/App/build/IronCore.xcarchive/Products/Applications/App.app "dist-ipa/Payload/IRON CORE.app"
+          cd dist-ipa
+          zip -qry ../iron-core-unsigned.ipa Payload
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iron-core-unsigned-ipa
+          path: iron-core-unsigned.ipa
+          retention-days: 14
