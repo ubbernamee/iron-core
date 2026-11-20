@@ -68,30 +68,70 @@ export function joinLiveGymRoom(
   const sb = getSupabaseClient();
   if (!sb) return null;
 
+  const myKey = `${myState.name}-${Math.random().toString(36).slice(2, 6)}`;
+  let latestState: LiveGymPeerState = myState;
+  let isSubscribed = false;
+  const peersMap = new Map<string, LiveGymPeerState>();
+
+  const emitPeers = () => {
+    onPeersChange(Array.from(peersMap.values()));
+  };
+
   const channel: RealtimeChannel = sb.channel(`ironcore-gym-${roomCode.trim().toLowerCase()}`, {
-    config: { presence: { key: `${myState.name}-${Math.random().toString(36).slice(2, 6)}` } },
+    config: {
+      presence: { key: myKey },
+      broadcast: { self: true },
+    },
   });
 
   channel
     .on('presence', { event: 'sync' }, () => {
       const state = channel.presenceState<LiveGymPeerState>();
-      const list: LiveGymPeerState[] = [];
-      Object.values(state).forEach((entries) => {
-        entries.forEach((entry) => list.push(entry));
+      const activeKeys = new Set<string>();
+      Object.entries(state).forEach(([key, entries]) => {
+        activeKeys.add(key);
+        const latest = entries[entries.length - 1];
+        if (latest) {
+          const prev = peersMap.get(key);
+          if (!prev || (latest.updatedAt || 0) >= (prev.updatedAt || 0)) {
+            peersMap.set(key, latest);
+          }
+        }
       });
-      onPeersChange(list);
+      for (const key of Array.from(peersMap.keys())) {
+        if (!activeKeys.has(key)) peersMap.delete(key);
+      }
+      emitPeers();
+    })
+    .on('broadcast', { event: 'peer-update' }, ({ payload }) => {
+      if (payload?.key && payload?.state) {
+        peersMap.set(payload.key, payload.state as LiveGymPeerState);
+        emitPeers();
+      }
     })
     .subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        await channel.track(myState);
+        isSubscribed = true;
+        await channel.track(latestState);
       }
     });
 
   return {
     updateMyState: (next: LiveGymPeerState) => {
-      void channel.track(next);
+      latestState = next;
+      peersMap.set(myKey, next);
+      emitPeers();
+      if (isSubscribed) {
+        void channel.send({
+          type: 'broadcast',
+          event: 'peer-update',
+          payload: { key: myKey, state: next },
+        });
+        void channel.track(next);
+      }
     },
     leave: () => {
+      isSubscribed = false;
       void sb.removeChannel(channel);
     },
   };
