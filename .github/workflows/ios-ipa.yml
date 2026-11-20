@@ -31,7 +31,7 @@ jobs:
           fi
           npx cap sync ios
 
-      - name: Configure Info.plist permissions (Camera & Microphone)
+      - name: Configure Info.plist permissions and iOS WebView defaults
         run: |
           PLIST_PATH="ios/App/App/Info.plist"
           if [ -f "$PLIST_PATH" ]; then
@@ -40,6 +40,9 @@ jobs:
 
             /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'IRON CORE использует микрофон при записи видео с телеметрией и голосовых команд.'" "$PLIST_PATH" 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Set :NSMicrophoneUsageDescription 'IRON CORE использует микрофон при записи видео с телеметрией и голосовых команд.'" "$PLIST_PATH"
+
+            /usr/libexec/PlistBuddy -c "Add :UIViewControllerBasedStatusBarAppearance bool false" "$PLIST_PATH" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Set :UIViewControllerBasedStatusBarAppearance false" "$PLIST_PATH"
           fi
 
       - name: Configure iOS project settings for unsigned archive
