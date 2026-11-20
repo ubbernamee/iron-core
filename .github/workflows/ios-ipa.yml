@@ -19,6 +19,9 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Build web app
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
       - name: Add iOS platform if missing
@@ -27,6 +30,17 @@ jobs:
             npx cap add ios
           fi
           npx cap sync ios
+
+      - name: Configure Info.plist permissions (Camera & Microphone)
+        run: |
+          PLIST_PATH="ios/App/App/Info.plist"
+          if [ -f "$PLIST_PATH" ]; then
+            /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'IRON CORE использует камеру для разбора техники упражнений, HUD-видео и распознавания блюд.'" "$PLIST_PATH" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription 'IRON CORE использует камеру для разбора техники упражнений, HUD-видео и распознавания блюд.'" "$PLIST_PATH"
+
+            /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'IRON CORE использует микрофон при записи видео с телеметрией и голосовых команд.'" "$PLIST_PATH" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Set :NSMicrophoneUsageDescription 'IRON CORE использует микрофон при записи видео с телеметрией и голосовых команд.'" "$PLIST_PATH"
+          fi
 
       - name: Configure iOS project settings for unsigned archive
         run: |
@@ -59,7 +73,7 @@ jobs:
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_IDENTITY="" \
             archive -archivePath build/IronCore.xcarchive
 
       - name: Package unsigned IPA
