@@ -848,7 +848,27 @@ export default function App() {
     setCloudStatus(`В комнате «${syncCode}» в реальном времени ✓`);
   };
 
+  useEffect(() => {
+    if (!isInLiveRoom || !liveRoomRef.current) return;
+    liveRoomRef.current.updateMyState({
+      name: 'Максим',
+      exercise: nextPendingSet?.exerciseName || 'Тренировка завершена',
+      weightKg: nextPendingSet?.weightKg || null,
+      reps: nextPendingSet?.reps || 0,
+      completedSets: completedSetsCount,
+      totalSets: flatDaySets.length,
+      updatedAt: Date.now(),
+    });
+  }, [isInLiveRoom, nextPendingSet, completedSetsCount, flatDaySets.length]);
+
+  useEffect(() => {
+    return () => {
+      liveRoomRef.current?.leave();
+    };
+  }, []);
+
   const handleShareWorkout = async () => {
+
     NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
     const lines = [
       `IRON CORE // ${activeProgram.title} · ${dayObj.title}`,
