@@ -1,0 +1,211 @@
+/* IRON CORE — Full Sky / Ice / Glassmorphism Theme */
+:root {
+  --ic-sky-top: #1d7db5;
+  --ic-sky-mid: #3ca3d6;
+  --ic-sky-light: #78c5e8;
+  --ic-sky-deep: #0b4670;
+  --ic-glass-bg: rgba(255, 255, 255, 0.16);
+  --ic-glass-bg-strong: rgba(255, 255, 255, 0.24);
+  --ic-glass-well: rgba(9, 52, 84, 0.26);
+  --ic-glass-border: rgba(255, 255, 255, 0.3);
+  --ic-ink: #ffffff;
+  --ic-ink-soft: rgba(255, 255, 255, 0.86);
+  --ic-ink-muted: rgba(219, 243, 255, 0.72);
+  --ic-accent-dark: #13547a;
+}
+
+.ic-sky-app {
+  position: relative;
+  min-height: 100dvh;
+  color: var(--ic-ink);
+  background:
+    radial-gradient(circle at 78% 12%, rgba(255, 255, 255, 0.34), transparent 42%),
+    radial-gradient(circle at 14% 88%, rgba(8, 56, 92, 0.52), transparent 55%),
+    linear-gradient(130deg, #1f80b8 0%, #3da3d6 45%, #76c3e6 78%, #2d8bc0 100%);
+  overflow-x: clip;
+}
+
+.ic-sky-app::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.16;
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.18) 0px,
+    rgba(255, 255, 255, 0.18) 1px,
+    transparent 1px,
+    transparent 6px
+  );
+}
+
+.ic-sky-app > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Override dark slate surfaces into airy translucent glass */
+.ic-sky-app .slate-card,
+.ic-sky-surface .slate-card {
+  background: rgba(255, 255, 255, 0.16) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  box-shadow: 0 14px 36px rgba(9, 50, 82, 0.18) !important;
+  color: #ffffff !important;
+}
+
+.ic-sky-app .slate-well,
+.ic-sky-surface .slate-well {
+  background: rgba(9, 52, 84, 0.25) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+.ic-sky-app .slate-pill,
+.ic-sky-surface .slate-pill {
+  background: rgba(255, 255, 255, 0.16) !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  color: #ffffff !important;
+}
+
+.ic-sky-app .ios-glass-card,
+.ic-sky-surface .ios-glass-card {
+  background: rgba(12, 64, 102, 0.42) !important;
+  border: 1px solid rgba(255, 255, 255, 0.34) !important;
+  backdrop-filter: blur(20px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(150%) !important;
+  box-shadow: 0 16px 40px rgba(8, 42, 68, 0.28) !important;
+  color: #ffffff !important;
+}
+
+.ic-sky-app .ios-blur-bar,
+.ic-sky-surface .ios-blur-bar {
+  background: rgba(15, 76, 120, 0.52) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.26) !important;
+  backdrop-filter: blur(22px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(150%) !important;
+}
+
+/* Harmonize common dark utility classes inside the sky theme */
+.ic-sky-app .text-slate-50,
+.ic-sky-app .text-slate-100,
+.ic-sky-surface .text-slate-50,
+.ic-sky-surface .text-slate-100 {
+  color: #ffffff !important;
+}
+
+.ic-sky-app .text-slate-200,
+.ic-sky-app .text-slate-300,
+.ic-sky-surface .text-slate-200,
+.ic-sky-surface .text-slate-300 {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.ic-sky-app .text-slate-400,
+.ic-sky-app .text-slate-500,
+.ic-sky-surface .text-slate-400,
+.ic-sky-surface .text-slate-500 {
+  color: rgba(224, 245, 255, 0.78) !important;
+}
+
+.ic-sky-app .bg-slate-950,
+.ic-sky-app .bg-slate-950\/90,
+.ic-sky-app .bg-slate-950\/85,
+.ic-sky-app .bg-slate-950\/80,
+.ic-sky-app .bg-slate-950\/75,
+.ic-sky-app .bg-slate-950\/70,
+.ic-sky-app .bg-slate-950\/60,
+.ic-sky-app .bg-slate-950\/55,
+.ic-sky-surface .bg-slate-950,
+.ic-sky-surface .bg-slate-950\/90,
+.ic-sky-surface .bg-slate-950\/85,
+.ic-sky-surface .bg-slate-950\/80,
+.ic-sky-surface .bg-slate-950\/75,
+.ic-sky-surface .bg-slate-950\/70,
+.ic-sky-surface .bg-slate-950\/60,
+.ic-sky-surface .bg-slate-950\/55 {
+  background-color: rgba(8, 48, 78, 0.34) !important;
+}
+
+.ic-sky-app .bg-slate-900,
+.ic-sky-app .bg-slate-900\/90,
+.ic-sky-app .bg-slate-900\/80,
+.ic-sky-app .bg-slate-900\/70,
+.ic-sky-surface .bg-slate-900,
+.ic-sky-surface .bg-slate-900\/90,
+.ic-sky-surface .bg-slate-900\/80,
+.ic-sky-surface .bg-slate-900\/70 {
+  background-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.ic-sky-app .bg-slate-800,
+.ic-sky-surface .bg-slate-800 {
+  background-color: rgba(255, 255, 255, 0.24) !important;
+}
+
+.ic-sky-app .bg-slate-100,
+.ic-sky-surface .bg-slate-100 {
+  background-color: #ffffff !important;
+  color: #13547a !important;
+}
+
+.ic-sky-app .border-slate-400\/10,
+.ic-sky-app .border-slate-400\/15,
+.ic-sky-app .border-slate-400\/20,
+.ic-sky-app .border-slate-400\/25,
+.ic-sky-app .border-slate-400\/30,
+.ic-sky-surface .border-slate-400\/10,
+.ic-sky-surface .border-slate-400\/15,
+.ic-sky-surface .border-slate-400\/20,
+.ic-sky-surface .border-slate-400\/25,
+.ic-sky-surface .border-slate-400\/30 {
+  border-color: rgba(255, 255, 255, 0.26) !important;
+}
+
+.ic-sky-app .divide-slate-400\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+/* Crisp white primary pill buttons & accent highlights */
+.ic-sky-app .bg-sky-400,
+.ic-sky-app .bg-emerald-400,
+.ic-sky-app .bg-amber-400,
+.ic-sky-app .bg-teal-400,
+.ic-sky-app .bg-violet-400,
+.ic-sky-surface .bg-sky-400,
+.ic-sky-surface .bg-emerald-400,
+.ic-sky-surface .bg-amber-400,
+.ic-sky-surface .bg-teal-400,
+.ic-sky-surface .bg-violet-400 {
+  background-color: #ffffff !important;
+  color: #13547a !important;
+  box-shadow: 0 8px 22px rgba(9, 52, 84, 0.18) !important;
+}
+
+.ic-sky-app .liquid-set-btn.is-done {
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: #13547a !important;
+  border-color: #ffffff !important;
+}
+
+.ic-sky-app .next-set-beacon {
+  background: rgba(255, 255, 255, 0.26) !important;
+  border: 1px solid #ffffff !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.22) !important;
+}
+
+.ic-sky-app input,
+.ic-sky-app textarea,
+.ic-sky-app select {
+  color: #ffffff;
+}
+
+.ic-sky-app input::placeholder,
+.ic-sky-app textarea::placeholder {
+  color: rgba(224, 245, 255, 0.62);
+}
