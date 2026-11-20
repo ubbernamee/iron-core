@@ -2602,9 +2602,12 @@ export default function App() {
                       <div className="font-bold text-slate-100">{p.name}</div>
                       <div className="text-[10px] text-slate-400">{p.exercise}</div>
                     </div>
-                    <div className="font-mono text-xs text-emerald-300">
-                      {p.weightKg ? `${p.weightKg} кг × ${p.reps}` : `${p.completedSets}/${p.totalSets}`}
-                    </div>
+                    <div className="text-right font-mono text-xs text-emerald-300">
+  <div>{p.weightKg ? `${p.weightKg} кг × ${p.reps}` : `${p.reps} повт.`}</div>
+  <div className="text-[10px] text-slate-400">
+    {p.completedSets}/{p.totalSets} подх.
+  </div>
+</div>
                   </div>
                 ))}
               </div>
