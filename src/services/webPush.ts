@@ -51,7 +51,9 @@ export function sendLocalRestNotification(title: string, body: string): void {
       new Notification(title, { body, icon: './icon.svg' });
     }
   } catch {}
-  export async function scheduleBackgroundPush(
+}
+
+export async function scheduleBackgroundPush(
   delaySec: number,
   title: string,
   body: string
@@ -74,5 +76,4 @@ export function sendLocalRestNotification(title: string, body: string): void {
       }),
     });
   } catch {}
-}
 }
