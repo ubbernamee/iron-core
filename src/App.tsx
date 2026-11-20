@@ -506,6 +506,7 @@ export default function App() {
   // Native iOS UX Redesign States
   const [isBarbellSheetOpen, setIsBarbellSheetOpen] = useState(false);
   const [isDaySelectorSheetOpen, setIsDaySelectorSheetOpen] = useState(false);
+  const [isHeroCompact, setIsHeroCompact] = useState(false);
   const [expandedDoneItems, setExpandedDoneItems] = useState<Record<string, boolean>>({});
   const [openMenuIdx, setOpenMenuIdx] = useState<number | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -2574,42 +2575,72 @@ export default function App() {
         {activeTab === 'workout' && (
           <div className="max-w-3xl mx-auto space-y-3 mt-1">
             <div className="animate-cascade" style={{ animationDelay: '20ms' }}>
-              <HeroShowcaseV2
-                brandName="IRON CORE"
-                headlineLine1="Твой личный центр"
-                headlineLine2="силы и питания"
-                description={
-                  nextPendingSet
-                    ? `Следующий подход: ${nextPendingSet.exerciseName}${
-                        nextPendingSet.weightKg ? ` · ${nextPendingSet.weightKg} кг × ${nextPendingSet.reps}` : ` · ${nextPendingSet.reps} повт.`
-                      }`
-                    : 'Все подходы на сегодня закрыты — можно перейти в 3D, камеру или кухню.'
-                }
-                primaryCtaLabel={nextPendingSet ? 'В фокус-режим' : 'План и дни'}
-                secondaryCtaLabel="КБЖУ и кухня"
-                scheduleTitle="Сводка дня"
-                scheduleBadge={isFreestyleMode ? 'FREE' : `НЕД ${weekObj.week}`}
-                scheduleItems={heroScheduleItems}
-                features={[
-                  `${dayTonnage} кг тоннаж дня`,
-                  `${Math.round(nutritionTotals.kcal)} / ${targetKcal} ккал`,
-                  `${completedSetsCount} из ${flatDaySets.length} подходов`,
-                ]}
-                onStartWorkout={() => {
-                  if (nextPendingSet) {
-                    setIsGymFocusOpen(true);
-                  } else {
-                    setIsDaySelectorSheetOpen(true);
-                  }
-                }}
-                onOpenNutrition={() => setActiveTab('fridge')}
-                onOpen3DOrCamera={() => setIsBarbellSheetOpen(true)}
-                onNavigateTab={(tab) => {
-                  if (tab === 'workouts') setActiveTab('workout');
-                  if (tab === 'kitchen') setActiveTab('fridge');
-                  if (tab === '3d-camera') setIsBarbellSheetOpen(true);
-                }}
-              />
+              {isHeroCompact ? (
+                <div className="slate-card rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex items-center gap-2 text-xs">
+                    <span className="font-bold text-white truncate">IRON CORE</span>
+                    <span className="opacity-50">·</span>
+                    <span className="font-mono text-[11px] truncate">
+                      {completedSetsCount}/{flatDaySets.length} подх. · {dayTonnage} кг · {Math.round(nutritionTotals.kcal)} ккал
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsHeroCompact(false)}
+                    className="px-2.5 py-1 rounded-lg bg-white/20 text-[11px] font-semibold text-white shrink-0 active:scale-95"
+                  >
+                    Сводка
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <HeroShowcaseV2
+                    brandName="IRON CORE"
+                    headlineLine1="Твой личный центр"
+                    headlineLine2="силы и питания"
+                    description={
+                      nextPendingSet
+                        ? `Следующий подход: ${nextPendingSet.exerciseName}${
+                            nextPendingSet.weightKg ? ` · ${nextPendingSet.weightKg} кг × ${nextPendingSet.reps}` : ` · ${nextPendingSet.reps} повт.`
+                          }`
+                        : 'Все подходы на сегодня закрыты — можно перейти в 3D, камеру или кухню.'
+                    }
+                    primaryCtaLabel={nextPendingSet ? 'В фокус-режим' : 'План и дни'}
+                    secondaryCtaLabel="КБЖУ и кухня"
+                    scheduleTitle="Сводка дня"
+                    scheduleBadge={isFreestyleMode ? 'FREE' : `НЕД ${weekObj.week}`}
+                    scheduleItems={heroScheduleItems}
+                    features={[
+                      `${dayTonnage} кг тоннаж дня`,
+                      `${Math.round(nutritionTotals.kcal)} / ${targetKcal} ккал`,
+                      `${completedSetsCount} из ${flatDaySets.length} подходов`,
+                    ]}
+                    onStartWorkout={() => {
+                      if (nextPendingSet) {
+                        setIsGymFocusOpen(true);
+                      } else {
+                        setIsDaySelectorSheetOpen(true);
+                      }
+                    }}
+                    onOpenNutrition={() => setActiveTab('fridge')}
+                    onOpen3DOrCamera={() => setIsBarbellSheetOpen(true)}
+                    onNavigateTab={(tab) => {
+                      if (tab === 'workouts') setActiveTab('workout');
+                      if (tab === 'kitchen') setActiveTab('fridge');
+                      if (tab === '3d-camera') setIsBarbellSheetOpen(true);
+                    }}
+                  />
+                  <div className="flex justify-end px-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsHeroCompact(true)}
+                      className="text-[11px] font-medium text-white/80 hover:text-white transition-colors"
+                    >
+                      Свернуть баннер ↑
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Collapsible Freestyle Builder */}
