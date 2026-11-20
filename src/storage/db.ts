@@ -150,6 +150,7 @@ export async function hydrateFromIndexedDB(): Promise<HydratedStore> {
             wakeLockEnabled: true,
             shortcutsIslandEnabled: false,
             shortcutName: 'IronCoreTimer',
+            soundEffectsEnabled: true,
           },
         },
       }),
