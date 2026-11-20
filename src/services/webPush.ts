@@ -51,4 +51,28 @@ export function sendLocalRestNotification(title: string, body: string): void {
       new Notification(title, { body, icon: './icon.svg' });
     }
   } catch {}
+  export async function scheduleBackgroundPush(
+  delaySec: number,
+  title: string,
+  body: string
+): Promise<void> {
+  try {
+    if (!('serviceWorker' in navigator) || Notification.permission !== 'granted') return;
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) return;
+
+    await fetch('/api/push-notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'schedule',
+        subscription: sub,
+        delaySec,
+        title,
+        body,
+      }),
+    });
+  } catch {}
+}
 }
