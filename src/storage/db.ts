@@ -8,14 +8,16 @@ import {
   ExerciseConfig,
   FullBackupPayload,
   MealTemplate,
+  NutritionDayRecord,
   NutritionLog,
   SessionState,
   TrainingProgram,
+  WorkoutSessionRecord,
 } from '../types';
 
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 const DB_NAME = 'ironcore-db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export interface SnapshotRecord {
   id?: number;
@@ -32,6 +34,16 @@ interface IronCoreDB extends DBSchema {
   snapshots: {
     key: number;
     value: SnapshotRecord;
+    indexes: { 'by-date': string };
+  };
+  workout_sessions: {
+    key: string;
+    value: WorkoutSessionRecord;
+    indexes: { 'by-date': string };
+  };
+  nutrition_days: {
+    key: string;
+    value: NutritionDayRecord;
     indexes: { 'by-date': string };
   };
 }
@@ -51,6 +63,18 @@ export function getIronCoreDB(): Promise<IDBPDatabase<IronCoreDB>> {
             autoIncrement: true,
           });
           snapStore.createIndex('by-date', 'createdAt');
+        }
+        if (!db.objectStoreNames.contains('workout_sessions')) {
+          const sessStore = db.createObjectStore('workout_sessions', {
+            keyPath: 'id',
+          });
+          sessStore.createIndex('by-date', 'date');
+        }
+        if (!db.objectStoreNames.contains('nutrition_days')) {
+          const nutrStore = db.createObjectStore('nutrition_days', {
+            keyPath: 'date',
+          });
+          nutrStore.createIndex('by-date', 'date');
         }
       },
     });
@@ -86,6 +110,8 @@ export interface HydratedStore {
   mealTemplates: MealTemplate[];
   nutritionLog: NutritionLog;
   session: Partial<SessionState>;
+  workoutSessions: WorkoutSessionRecord[];
+  nutritionDays: NutritionDayRecord[];
   migratedFromLocalStorage: boolean;
 }
 
@@ -95,7 +121,6 @@ export async function hydrateFromIndexedDB(): Promise<HydratedStore> {
 
   let migrated = false;
 
-  // One-time seamless migration from legacy localStorage keys (v5–v8)
   if (!schemaVersion) {
     const legacyPrograms = readLegacyJson<TrainingProgram[]>(['ironcore_v6_programs']);
     const legacyExercises = readLegacyJson<ExerciseConfig[]>(['ironcore_v5_ex', 'ironcore_ios_v5_ex']);
@@ -135,7 +160,7 @@ export async function hydrateFromIndexedDB(): Promise<HydratedStore> {
       tx.objectStore('kv').put(initialSession, 'session'),
       tx.objectStore('snapshots').add({
         createdAt: new Date().toISOString(),
-        reason: legacyPrograms || legacyExercises || legacyCompleted ? 'Миграция из localStorage' : 'Инициализация базы v9',
+        reason: legacyPrograms || legacyExercises || legacyCompleted ? 'Миграция из localStorage' : 'Инициализация базы v3',
         payload: {
           schemaVersion: CURRENT_SCHEMA_VERSION,
           programs: initialPrograms,
@@ -165,21 +190,28 @@ export async function hydrateFromIndexedDB(): Promise<HydratedStore> {
       mealTemplates: initialMeals,
       nutritionLog: initialNutr,
       session: initialSession,
+      workoutSessions: [],
+      nutritionDays: [],
       migratedFromLocalStorage: migrated,
     };
   }
 
-  // Read existing IndexedDB state & ensure any newly added built-in programs are merged
-  const [rawPrograms, rawExercises, rawCompleted, rawMeals, rawNutr, rawSession] = await Promise.all([
-    db.get('kv', 'programs') as Promise<TrainingProgram[] | undefined>,
-    db.get('kv', 'exercises') as Promise<ExerciseConfig[] | undefined>,
-    db.get('kv', 'completedSets') as Promise<Record<string, boolean> | undefined>,
-    db.get('kv', 'mealTemplates') as Promise<MealTemplate[] | undefined>,
-    db.get('kv', 'nutritionLog') as Promise<NutritionLog | undefined>,
-    db.get('kv', 'session') as Promise<Partial<SessionState> | undefined>,
-  ]);
+  if (schemaVersion < CURRENT_SCHEMA_VERSION) {
+    await db.put('kv', CURRENT_SCHEMA_VERSION, 'schemaVersion');
+  }
 
-  // Keep built-in meal video links fresh while preserving any custom user recipes
+  const [rawPrograms, rawExercises, rawCompleted, rawMeals, rawNutr, rawSession, workoutSessions, nutritionDays] =
+    await Promise.all([
+      db.get('kv', 'programs') as Promise<TrainingProgram[] | undefined>,
+      db.get('kv', 'exercises') as Promise<ExerciseConfig[] | undefined>,
+      db.get('kv', 'completedSets') as Promise<Record<string, boolean> | undefined>,
+      db.get('kv', 'mealTemplates') as Promise<MealTemplate[] | undefined>,
+      db.get('kv', 'nutritionLog') as Promise<NutritionLog | undefined>,
+      db.get('kv', 'session') as Promise<Partial<SessionState> | undefined>,
+      db.getAll('workout_sessions'),
+      db.getAll('nutrition_days'),
+    ]);
+
   const builtInVideoMap = new Map(DEFAULT_MEAL_TEMPLATES.map((m) => [m.id, m.video]));
   const syncedMeals = (Array.isArray(rawMeals) && rawMeals.length > 0 ? rawMeals : DEFAULT_MEAL_TEMPLATES).map(
     (m) => (builtInVideoMap.has(m.id) ? { ...m, video: builtInVideoMap.get(m.id) } : m)
@@ -202,6 +234,8 @@ export async function hydrateFromIndexedDB(): Promise<HydratedStore> {
     mealTemplates: syncedMeals,
     nutritionLog: rawNutr || { bodyweight: 78.0, dayType: 'workout', entries: [] },
     session: rawSession || {},
+    workoutSessions: workoutSessions.sort((a, b) => b.date.localeCompare(a.date)),
+    nutritionDays: nutritionDays.sort((a, b) => b.date.localeCompare(a.date)),
     migratedFromLocalStorage: false,
   };
 }
@@ -209,6 +243,28 @@ export async function hydrateFromIndexedDB(): Promise<HydratedStore> {
 export async function saveKV<T>(key: string, value: T): Promise<void> {
   const db = await getIronCoreDB();
   await db.put('kv', value, key);
+}
+
+export async function saveWorkoutSession(record: WorkoutSessionRecord): Promise<void> {
+  const db = await getIronCoreDB();
+  await db.put('workout_sessions', record);
+}
+
+export async function listWorkoutSessions(limit = 60): Promise<WorkoutSessionRecord[]> {
+  const db = await getIronCoreDB();
+  const all = await db.getAll('workout_sessions');
+  return all.sort((a, b) => b.date.localeCompare(a.date)).slice(0, limit);
+}
+
+export async function saveNutritionDay(record: NutritionDayRecord): Promise<void> {
+  const db = await getIronCoreDB();
+  await db.put('nutrition_days', record);
+}
+
+export async function listNutritionDays(limit = 60): Promise<NutritionDayRecord[]> {
+  const db = await getIronCoreDB();
+  const all = await db.getAll('nutrition_days');
+  return all.sort((a, b) => b.date.localeCompare(a.date)).slice(0, limit);
 }
 
 export async function createSafetySnapshot(reason: string, payload: FullBackupPayload): Promise<void> {
@@ -219,7 +275,6 @@ export async function createSafetySnapshot(reason: string, payload: FullBackupPa
     reason,
     payload: { ...payload, schemaVersion: CURRENT_SCHEMA_VERSION },
   });
-  // Keep latest 10 snapshots so storage stays lean
   const allKeys = await tx.store.getAllKeys();
   if (allKeys.length > 10) {
     const toDelete = allKeys.slice(0, allKeys.length - 10);

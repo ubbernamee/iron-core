@@ -7,6 +7,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { NativeiOSBridge } from '../engine/iosBridge';
+import { subscribeAppLifecycle } from '../utils/ios-lifecycle';
 import { calculatePlatesPerSide } from '../engine/math';
 import { ExerciseId, PlateSpec } from '../types';
 import { AnimatedNumber } from './AnimatedNumber';
@@ -749,6 +750,13 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
     let frameId = 0;
     let cycleSec = 0;
     let lastTime = performance.now();
+    let isBgPaused = false;
+    const unsubscribeLifecycle = subscribeAppLifecycle((state) => {
+      isBgPaused = state === 'background' || state === 'hidden';
+      if (!isBgPaused) {
+        lastTime = performance.now();
+      }
+    });
     const loadRatio = Math.max(0, Math.min(1, (targetWeight - 60) / 140)); // 0 at <=60kg, 1 at >=200kg
 
     const setHeat = (mat: THREE.MeshStandardMaterial, intensity: number) => {
@@ -758,6 +766,10 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
     };
 
     const animate = (now: number) => {
+      if (isBgPaused) {
+        frameId = requestAnimationFrame(animate);
+        return;
+      }
       const dt = Math.min(0.05, (now - lastTime) / 1000);
       lastTime = now;
 
@@ -894,6 +906,7 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
     window.addEventListener('resize', handleResize);
 
     return () => {
+      unsubscribeLifecycle();
       cancelAnimationFrame(frameId);
       window.removeEventListener('resize', handleResize);
       envRT.dispose();

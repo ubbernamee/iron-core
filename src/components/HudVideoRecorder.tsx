@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { NativeiOSBridge } from '../engine/iosBridge';
+import { subscribeAppLifecycle } from '../utils/ios-lifecycle';
 
 export interface HudTelemetryTarget {
   exerciseName: string;
@@ -58,6 +59,7 @@ export const HudVideoRecorder: React.FC<HudVideoRecorderProps> = ({
   const chunksRef = useRef<Blob[]>([]);
   const rafRef = useRef<number | null>(null);
   const recStartRef = useRef<number>(0);
+  const isBgPausedRef = useRef<boolean>(false);
 
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [hudTheme, setHudTheme] = useState<HudTheme>('cyan');
@@ -108,6 +110,10 @@ export const HudVideoRecorder: React.FC<HudVideoRecorderProps> = ({
   }, []);
 
   const drawHudFrame = useCallback(() => {
+    if (isBgPausedRef.current && !stateRef.current.isRecording) {
+      rafRef.current = requestAnimationFrame(drawHudFrame);
+      return;
+    }
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) {
@@ -357,6 +363,13 @@ export const HudVideoRecorder: React.FC<HudVideoRecorderProps> = ({
       setCameraError(`Ошибка камеры: ${msg}. Разреши доступ в настройках iOS.`);
     }
   }, [facingMode, stopCamera, drawHudFrame]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeAppLifecycle((state) => {
+      isBgPausedRef.current = state === 'background' || state === 'hidden';
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     if (!isOpen) {

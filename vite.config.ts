@@ -4,6 +4,19 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   base: './',
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'three-vendor': ['three'],
+          'vision-vendor': ['@mediapipe/tasks-vision'],
+          'pdf-vendor': ['pdfjs-dist'],
+          'supabase-vendor': ['@supabase/supabase-js'],
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({
@@ -15,8 +28,8 @@ export default defineConfig({
         description: 'Персональное приложение для силовых программ, расчёта весов от 1ПМ и ПП-рецептов',
         start_url: './',
         display: 'standalone',
-        background_color: '#04060B',
-        theme_color: '#04060B',
+        background_color: '#0b395c',
+        theme_color: '#0b395c',
         orientation: 'portrait',
         icons: [
           {

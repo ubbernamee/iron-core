@@ -1,4 +1,33 @@
-export type ExerciseId = 'bench' | 'squat' | 'deadlift';
+export type BaseExerciseId = 'bench' | 'squat' | 'deadlift';
+export type ExerciseId = BaseExerciseId | (string & {});
+
+export type MuscleGroupId =
+  | 'chest'
+  | 'front_delts'
+  | 'side_delts'
+  | 'rear_delts'
+  | 'triceps'
+  | 'biceps'
+  | 'lats'
+  | 'upper_back'
+  | 'lower_back'
+  | 'quads'
+  | 'hamstrings'
+  | 'glutes'
+  | 'calves'
+  | 'core';
+
+export interface ExerciseCatalogEntry {
+  id: string;
+  name: string;
+  aliases: string[];
+  primaryMuscles: MuscleGroupId[];
+  secondaryMuscles: MuscleGroupId[];
+  /** Relative load coefficients (0..1) per muscle group for 3D workload heatmap */
+  muscleWeights: Partial<Record<MuscleGroupId, number>>;
+  equipment: 'barbell' | 'dumbbell' | 'cable' | 'machine' | 'bodyweight';
+  isCompound: boolean;
+}
 
 export interface OneRMHistoryPoint {
   date: string;
@@ -52,6 +81,33 @@ export interface TrainingProgram {
   weeks: WorkoutWeek[];
 }
 
+export interface LoggedSetEntry {
+  weightKg: number | null;
+  reps: number;
+  rpe?: number;
+}
+
+export interface LoggedExerciseEntry {
+  name: string;
+  catalogId?: string;
+  sets: LoggedSetEntry[];
+}
+
+export interface WorkoutSessionRecord {
+  id: string;
+  date: string; // YYYY-MM-DD
+  programId: string;
+  programTitle: string;
+  week: number;
+  dayTitle: string;
+  tonnageKg: number;
+  completedSets: number;
+  totalSets: number;
+  exercises: LoggedExerciseEntry[];
+  muscleLoad: Partial<Record<MuscleGroupId, number>>;
+  updatedAt: string;
+}
+
 export interface MealTemplate {
   id: string;
   category: string;
@@ -71,6 +127,19 @@ export interface NutritionLog {
   bodyweight: number;
   dayType: 'workout' | 'rest';
   entries: MealTemplate[];
+}
+
+export interface NutritionDayRecord {
+  date: string; // YYYY-MM-DD
+  bodyweight: number;
+  dayType: 'workout' | 'rest';
+  kcal: number;
+  p: number;
+  f: number;
+  c: number;
+  waterMl: number;
+  entries: MealTemplate[];
+  updatedAt: string;
 }
 
 export interface ShoppingItem {
@@ -130,4 +199,6 @@ export interface FullBackupPayload {
   nutritionLog: NutritionLog;
   shoppingList?: ShoppingItem[];
   iosSettings: IOSSettings;
+  workoutSessions?: WorkoutSessionRecord[];
+  nutritionDays?: NutritionDayRecord[];
 }

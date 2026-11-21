@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { FilesetResolver, PoseLandmarker, NormalizedLandmark } from '@mediapipe/tasks-vision';
 import { NativeiOSBridge } from '../engine/iosBridge';
+import { subscribeAppLifecycle } from '../utils/ios-lifecycle';
 
 interface FormCheckVisionProps {
   isOpen: boolean;
@@ -52,9 +53,13 @@ export const FormCheckVision: React.FC<FormCheckVisionProps> = ({ isOpen, onClos
   useEffect(() => {
     if (!isOpen) return;
     let active = true;
+    let isBgPaused = false;
     let stream: MediaStream | null = null;
     let landmarker: PoseLandmarker | null = null;
     let rafId = 0;
+    const unsubscribeLifecycle = subscribeAppLifecycle((state) => {
+      isBgPaused = state === 'background' || state === 'hidden';
+    });
 
     const start = async () => {
       try {
@@ -88,6 +93,10 @@ export const FormCheckVision: React.FC<FormCheckVisionProps> = ({ isOpen, onClos
         let lastVideoTime = -1;
         const loop = () => {
           if (!active || !videoRef.current || !canvasRef.current || !landmarker) return;
+          if (isBgPaused) {
+            rafId = requestAnimationFrame(loop);
+            return;
+          }
           const video = videoRef.current;
           const canvas = canvasRef.current;
           if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
@@ -164,6 +173,7 @@ export const FormCheckVision: React.FC<FormCheckVisionProps> = ({ isOpen, onClos
 
     return () => {
       active = false;
+      unsubscribeLifecycle();
       cancelAnimationFrame(rafId);
       if (stream) stream.getTracks().forEach((t) => t.stop());
       landmarker?.close();

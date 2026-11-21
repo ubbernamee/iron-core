@@ -1,11 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatedNumber } from './components/AnimatedNumber';
-import { BarbellWebGL3D } from './components/BarbellWebGL3D';
+import { HeroShowcaseV2, type HeroScheduleItem } from './components/HeroShowcaseV2';
+const BarbellWebGL3D = lazy(() => import('./components/BarbellWebGL3D').then((m) => ({ default: m.BarbellWebGL3D })));
 import { BottomSheet } from './components/BottomSheet';
 import { DynamicIslandBar, PendingSetInfo } from './components/DynamicIslandBar';
-import { FormCheckVision } from './components/FormCheckVision';
-import { GymFocusModal } from './components/GymFocusModal';
-import { HudTelemetryTarget, HudVideoRecorder } from './components/HudVideoRecorder';
+const FormCheckVision = lazy(() => import('./components/FormCheckVision').then((m) => ({ default: m.FormCheckVision })));
+const GymFocusModal = lazy(() => import('./components/GymFocusModal').then((m) => ({ default: m.GymFocusModal })));
+import type { HudTelemetryTarget } from './components/HudVideoRecorder';
+const HudVideoRecorder = lazy(() => import('./components/HudVideoRecorder').then((m) => ({ default: m.HudVideoRecorder })));
 import {
   BoltIcon,
   CameraIcon,
@@ -47,6 +49,8 @@ import {
   LiveGymPeerState,
   pullBackupFromCloud,
   pushBackupToCloud,
+  syncNutritionDayToCloud,
+  syncWorkoutSessionToCloud,
 } from './services/cloudSync';
 import { enableBackgroundPush, scheduleBackgroundPush, sendLocalRestNotification } from './services/webPush';
 import { createVoiceCoach, isVoiceSupported, VoiceCoachController, VoiceCommand } from './services/voiceCoach';
@@ -70,8 +74,39 @@ import {
   listSafetySnapshots,
   mergeBuiltInPrograms,
   saveKV,
+  saveNutritionDay,
+  saveWorkoutSession,
   SnapshotRecord,
 } from './storage/db';
+import { computeMuscleLoad } from './data/exerciseCatalog';
+import {
+  ACCENT_PRESETS,
+  AVATAR_COLORS,
+  DAILY_SUPPLEMENTS,
+  FREESTYLE_QUICK_EXERCISES,
+  QUICK_SNACK_PRESETS,
+  RECIPE_CATEGORIES,
+  calculateFemaleDOTS,
+  extractCookMinutes,
+  generateChefRecipe,
+  generateUniqueSyncCode,
+  getMealSlot,
+  getPeerAvatarStyle,
+  getTodayDateKey,
+  loadLocalJson,
+  normalizeExKey,
+  scaleIngredientText,
+  spawnCelebrationBurst,
+  type AccentPreset,
+  type BlockOverride,
+  type DayOverride,
+  type ExtraWorkoutItem,
+  type KitchenSubTab,
+  type MealSlot,
+  type RecipeSortMode,
+  type UserProfile,
+  type VisualTheme,
+} from './utils/appHelpers';
 import {
   ExerciseConfig,
   ExerciseId,
@@ -84,237 +119,6 @@ import {
   TabId,
   TrainingProgram,
 } from './types';
-
-interface BlockOverride {
-  weightKg?: number | null;
-  reps?: number;
-  sets?: number;
-}
-
-interface DayItemOverride {
-  name?: string;
-  note?: string;
-  blocks?: Record<number, BlockOverride>;
-}
-
-interface ExtraWorkoutItem {
-  id: string;
-  name: string;
-  note?: string;
-  weightKg: number | null;
-  reps: number;
-  sets: number;
-}
-
-interface DayOverride {
-  items?: Record<number, DayItemOverride>;
-  extraItems?: ExtraWorkoutItem[];
-}
-
-const FREESTYLE_QUICK_EXERCISES = [
-  'Жим штанги лежа',
-  'Приседания со штангой',
-  'Становая тяга',
-  'Подтягивания',
-  'Отжимания на брусьях',
-  'Жим гантелей 30°',
-  'Тяга верхнего блока',
-  'Сгибание на бицепс',
-  'Махи на плечи',
-  'Пресс',
-];
-
-function normalizeExKey(name: string): string {
-  return name.toLowerCase().replace(/[^a-zа-яё0-9]+/gi, ' ').trim();
-}
-
-function loadLocalJson<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-type UserGender = 'male' | 'female';
-
-interface UserProfile {
-  name: string;
-  gender: UserGender;
-  avatarColor: string;
-  syncCode: string;
-  onboarded: boolean;
-}
-
-const AVATAR_COLORS = [
-  { id: 'sky', hex: '#38BDF8', bg: 'bg-sky-400', text: 'text-slate-950' },
-  { id: 'emerald', hex: '#34D399', bg: 'bg-emerald-400', text: 'text-slate-950' },
-  { id: 'rose', hex: '#FB7185', bg: 'bg-rose-400', text: 'text-slate-950' },
-  { id: 'violet', hex: '#A78BFA', bg: 'bg-violet-400', text: 'text-slate-950' },
-  { id: 'amber', hex: '#FBBF24', bg: 'bg-amber-400', text: 'text-slate-950' },
-  { id: 'slate', hex: '#E2E8F0', bg: 'bg-slate-200', text: 'text-slate-950' },
-];
-
-function generateUniqueSyncCode(): string {
-  const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
-  let suffix = '';
-  for (let i = 0; i < 6; i++) {
-    suffix += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return `iron-${suffix}`;
-}
-
-function getPeerAvatarStyle(name: string): { bg: string; text: string; initial: string } {
-  const clean = (name || 'А').trim();
-  const initial = clean.charAt(0).toUpperCase() || 'А';
-  let hash = 0;
-  for (let i = 0; i < clean.length; i++) {
-    hash = (hash * 31 + clean.charCodeAt(i)) >>> 0;
-  }
-  const col = AVATAR_COLORS[hash % AVATAR_COLORS.length];
-  return { bg: col.bg, text: col.text, initial };
-}
-
-function calculateFemaleDOTS(totalKg: number, bwKg: number): number {
-  if (!totalKg || totalKg <= 0 || !bwKg || bwKg <= 0) return 0;
-  const bw = Math.max(40, Math.min(150, bwKg));
-  const a = -57.96288;
-  const b = 13.6175032;
-  const c = -0.1126655495;
-  const d = 0.0005158568;
-  const e = -0.0000010706;
-  const denom = a + b * bw + c * bw ** 2 + d * bw ** 3 + e * bw ** 4;
-  if (denom <= 0) return 0;
-  return Number(((totalKg * 500) / denom).toFixed(1));
-}
-
-type VisualTheme = 'obsidian' | 'oled' | 'titanium';
-type AccentPreset = 'auto' | 'sky' | 'emerald' | 'rose' | 'violet' | 'amber';
-
-const ACCENT_PRESETS: { id: AccentPreset; label: string; hex: string; rgb: string }[] = [
-  { id: 'auto', label: 'Авто', hex: '#38BDF8', rgb: '56, 189, 248' },
-  { id: 'sky', label: 'Cyan', hex: '#38BDF8', rgb: '56, 189, 248' },
-  { id: 'emerald', label: 'Mint', hex: '#34D399', rgb: '52, 211, 153' },
-  { id: 'rose', label: 'Crimson', hex: '#FB7185', rgb: '251, 113, 133' },
-  { id: 'violet', label: 'Violet', hex: '#A78BFA', rgb: '167, 139, 250' },
-  { id: 'amber', label: 'Gold', hex: '#FBBF24', rgb: '251, 191, 36' },
-];
-
-type KitchenSubTab = 'ration' | 'fridge' | 'shopping';
-type RecipeSortMode = 'default' | 'protein' | 'light' | 'video';
-type MealSlot = 'Завтрак' | 'Обед' | 'Ужин' | 'Перекус';
-
-const RECIPE_CATEGORIES = ['Все', 'Избранное', 'Завтрак', 'Обед', 'Ужин', 'Десерты', 'Салаты', 'Выпечка'];
-
-const QUICK_SNACK_PRESETS: { name: string; kcal: number; p: number; f: number; c: number; slot: MealSlot }[] = [
-  { name: 'Протеин (30 г)', kcal: 120, p: 24, f: 1, c: 3, slot: 'Перекус' },
-  { name: 'Банан (1 шт)', kcal: 105, p: 1, f: 0, c: 27, slot: 'Перекус' },
-  { name: 'Яйца варёные / глазунья (2 шт)', kcal: 155, p: 13, f: 11, c: 1, slot: 'Завтрак' },
-  { name: 'Творог 5% (200 г)', kcal: 242, p: 32, f: 10, c: 6, slot: 'Ужин' },
-  { name: 'Греческий йогурт (150 г)', kcal: 100, p: 12, f: 3, c: 6, slot: 'Перекус' },
-  { name: 'Протеиновый батончик', kcal: 195, p: 20, f: 6, c: 12, slot: 'Перекус' },
-];
-
-const DAILY_SUPPLEMENTS = [
-  { id: 'creatine', label: 'Креатин 5 г' },
-  { id: 'omega3', label: 'Омега-3' },
-  { id: 'vitd', label: 'Витамин D3' },
-  { id: 'magnesium', label: 'Магний' },
-];
-
-function getTodayDateKey(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function getMealSlot(category?: string): MealSlot {
-  if (category === 'Завтрак') return 'Завтрак';
-  if (category === 'Обед' || category === 'Салаты') return 'Обед';
-  if (category === 'Ужин') return 'Ужин';
-  return 'Перекус';
-}
-
-function scaleIngredientText(text: string, scale: number): string {
-  if (scale === 1) return text;
-  return text.replace(
-    /(\d+(?:[.,]\d+)?)\s*(г|гр|мл|шт\.?|ст\.?\s*л\.?|ч\.?\s*л\.?|уп\.?)/gi,
-    (_m, numStr: string, unit: string) => {
-      const val = parseFloat(numStr.replace(',', '.'));
-      if (Number.isNaN(val)) return _m;
-      const scaled = val * scale;
-      const formatted = Number.isInteger(scaled) ? String(scaled) : scaled.toFixed(1).replace(/\.0$/, '');
-      return `${formatted} ${unit}`;
-    }
-  );
-}
-
-function extractCookMinutes(steps: string): number[] {
-  const found = new Set<number>();
-  const regex = /(\d+)(?:\s*[–-]\s*(\d+))?\s*(?:мин(?:ут[ыа]?)?)/gi;
-  let m: RegExpExecArray | null;
-  while ((m = regex.exec(steps)) !== null) {
-    const first = parseInt(m[1], 10);
-    if (first >= 1 && first <= 180) found.add(first);
-  }
-  return Array.from(found).slice(0, 3);
-}
-
-function generateChefRecipe(selectedIds: string[], remainKcal: number, remainProt: number): MealTemplate {
-  const labels = FRIDGE_PRODUCTS.filter((p) => selectedIds.includes(p.id)).map((p) => p.label.split(' / ')[0]);
-  const baseList = labels.length > 0 ? labels : ['Творог', 'Яйца', 'Овсянка'];
-  const targetK = Math.max(280, Math.min(720, remainKcal > 150 ? Math.round(remainKcal * 0.85) : 450));
-  const targetP = Math.max(24, Math.min(62, remainProt > 15 ? Math.round(remainProt * 0.8) : 38));
-  const targetF = Math.max(6, Math.round((targetK * 0.22) / 9));
-  const targetC = Math.max(12, Math.round((targetK - targetP * 4 - targetF * 9) / 4));
-
-  const hasSweet = selectedIds.some((id) => ['творог', 'овсян', 'вишн', 'йогурт', 'пудинг'].includes(id));
-  const title = hasSweet
-    ? `Шеф-боул: ${baseList.slice(0, 3).join(' + ')}`
-    : `Белковая сковорода: ${baseList.slice(0, 3).join(' + ')}`;
-
-  const ingredients = baseList
-    .map((item, i) => `${item} — ${i === 0 ? 150 : i === 1 ? 100 : 60} г`)
-    .join(', ') + ', специи / соль по вкусу.';
-
-  const steps = hasSweet
-    ? `Смешай ${baseList.slice(0, 2).join(' и ')} до однородности, добавь остальные ингредиенты и дай настояться 10 минут (или запеки 15 минут при 180 °C).`
-    : `Нарежь ${baseList.slice(0, 2).join(' и ')}, обжарь на антипригарной сковороде 8 минут, добавь остальное и туши под крышкой ещё 7 минут.`;
-
-  return {
-    id: `chef-${Date.now()}`,
-    category: hasSweet ? 'Завтрак' : 'Обед',
-    name: title,
-    kcal: targetK,
-    p: targetP,
-    f: targetF,
-    c: targetC,
-    portionNote: 'AI-Шеф под остаток КБЖУ',
-    video: '',
-    ingredients,
-    steps,
-  };
-}
-
-function spawnCelebrationBurst(): void {
-  const colors = ['#38BDF8', '#34D399', '#FBBF24', '#A78BFA', '#F8FAFC'];
-  const cx = window.innerWidth / 2;
-  const cy = window.innerHeight * 0.45;
-  for (let i = 0; i < 28; i++) {
-    const el = document.createElement('div');
-    el.className = 'confetti-dot';
-    el.style.left = `${cx}px`;
-    el.style.top = `${cy}px`;
-    el.style.backgroundColor = colors[i % colors.length];
-    const angle = (Math.PI * 2 * i) / 28 + (Math.random() - 0.5) * 0.3;
-    const dist = 90 + Math.random() * 140;
-    el.style.setProperty('--tx', `${Math.cos(angle) * dist}px`);
-    el.style.setProperty('--ty', `${Math.sin(angle) * dist - 40}px`);
-    el.style.setProperty('--rot', `${Math.round((Math.random() - 0.5) * 540)}deg`);
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 950);
-  }
-}
 
 export default function App() {
   const isNativeApp = NativeiOSBridge.isNativeCapacitor();
@@ -461,7 +265,7 @@ export default function App() {
 
   // Visual Theme (OLED / Obsidian / Titanium) & Accent
   const [visualTheme, setVisualTheme] = useState<VisualTheme>(() =>
-    loadLocalJson<VisualTheme>('ironcore_visual_theme_v1', 'obsidian')
+    loadLocalJson<VisualTheme>('ironcore_visual_theme_v1', 'ocean-glass')
   );
   const [accentPreset, setAccentPreset] = useState<AccentPreset>(() =>
     loadLocalJson<AccentPreset>('ironcore_accent_preset_v1', 'auto')
@@ -504,6 +308,7 @@ export default function App() {
   // Native iOS UX Redesign States
   const [isBarbellSheetOpen, setIsBarbellSheetOpen] = useState(false);
   const [isDaySelectorSheetOpen, setIsDaySelectorSheetOpen] = useState(false);
+  const [isHeroCompact, setIsHeroCompact] = useState(false);
   const [expandedDoneItems, setExpandedDoneItems] = useState<Record<string, boolean>>({});
   const [openMenuIdx, setOpenMenuIdx] = useState<number | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -596,8 +401,18 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem('ironcore_visual_theme_v1', JSON.stringify(visualTheme));
-      document.body.style.backgroundColor =
-        visualTheme === 'oled' ? '#000000' : visualTheme === 'titanium' ? '#0B0F17' : '#020617';
+      document.documentElement.setAttribute('data-theme', visualTheme);
+      const bg =
+        visualTheme === 'ocean-glass'
+          ? '#0b395c'
+          : visualTheme === 'oled'
+          ? '#000000'
+          : visualTheme === 'titanium'
+          ? '#0b0f17'
+          : '#04060b';
+      document.body.style.backgroundColor = bg;
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', bg);
     } catch {}
   }, [visualTheme]);
 
@@ -1869,6 +1684,117 @@ export default function App() {
   }, [nutritionLog.entries]);
 
   const targetKcal = nutritionLog.dayType === 'workout' ? 3000 : 2500;
+
+  const heroScheduleItems = useMemo<HeroScheduleItem[]>(() => {
+    const squat1RM = exercises.find((e) => e.id === 'squat')?.oneRepMax || 0;
+    const deadlift1RM = exercises.find((e) => e.id === 'deadlift')?.oneRepMax || 0;
+    const benchVal = exercises.find((e) => e.id === 'bench')?.oneRepMax || 0;
+    const remainKcal = Math.max(0, targetKcal - Math.round(nutritionTotals.kcal));
+    const remainProt = Math.max(0, Math.round((nutritionLog.bodyweight || 78) * 2.0) - Math.round(nutritionTotals.p));
+
+    return [
+      {
+        id: 'ic-lift-1pm',
+        day: isFreestyleMode ? 'Свободный зал' : `${activeProgram.title} · Нед ${weekObj.week}`,
+        title: `Ж ${benchVal || 0} · П ${squat1RM || 0} · Т ${deadlift1RM || 0} кг`,
+        timeOrMetric: `${completedSetsCount}/${flatDaySets.length}`,
+      },
+      {
+        id: 'ic-kcal-day',
+        day: 'КБЖУ сегодня',
+        title: `${Math.round(nutritionTotals.kcal)} / ${targetKcal} ккал · Б ${Math.round(nutritionTotals.p)}г`,
+        timeOrMetric: remainKcal > 0 ? `-${remainKcal} ккал · Б ${remainProt}г` : 'Цель ✓',
+      },
+    ];
+  }, [
+    exercises,
+    targetKcal,
+    nutritionTotals.kcal,
+    nutritionTotals.p,
+    nutritionLog.bodyweight,
+    isFreestyleMode,
+    activeProgram.title,
+    weekObj.week,
+    completedSetsCount,
+    flatDaySets.length,
+  ]);
+
+  // Auto-persist daily workout session with muscle workload breakdown (IndexedDB v3 + optional Cloud)
+  useEffect(() => {
+    if (!isHydrated || completedSetsCount === 0) return;
+    const timer = window.setTimeout(() => {
+      const today = getTodayDateKey();
+      const loggedExercises = computedDayItems
+        .map((item) => {
+          const doneSets = item.computedBlocks.flatMap((b) =>
+            Array.from({ length: b.sets })
+              .map((_, sIdx) => ({ key: `${b.blockKey}-s${sIdx}`, weightKg: b.weightKg, reps: b.reps }))
+              .filter((s) => Boolean(completedSets[s.key]))
+              .map(({ weightKg, reps }) => ({ weightKg, reps }))
+          );
+          return { name: item.name, sets: doneSets };
+        })
+        .filter((e) => e.sets.length > 0);
+
+      const sessionRecord = {
+        id: `${today}-${isFreestyleMode ? 'freestyle' : activeProgram.id}-w${weekObj.week}-d${selectedDayIdx}`,
+        date: today,
+        programId: isFreestyleMode ? 'freestyle' : activeProgram.id,
+        programTitle: isFreestyleMode ? 'Свободная тренировка' : activeProgram.title,
+        week: weekObj.week,
+        dayTitle: isFreestyleMode ? 'Свободный зал' : dayObj.title,
+        tonnageKg: dayTonnage,
+        completedSets: completedSetsCount,
+        totalSets: flatDaySets.length,
+        exercises: loggedExercises,
+        muscleLoad: computeMuscleLoad(loggedExercises),
+        updatedAt: new Date().toISOString(),
+      };
+      void saveWorkoutSession(sessionRecord);
+      if (isCloudConfigured()) {
+        void syncWorkoutSessionToCloud(sessionRecord);
+      }
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [
+    isHydrated,
+    completedSetsCount,
+    completedSets,
+    computedDayItems,
+    isFreestyleMode,
+    activeProgram.id,
+    activeProgram.title,
+    weekObj.week,
+    selectedDayIdx,
+    dayObj.title,
+    dayTonnage,
+    flatDaySets.length,
+  ]);
+
+  // Auto-persist daily nutrition log into IndexedDB v3 (+ optional Cloud)
+  useEffect(() => {
+    if (!isHydrated) return;
+    const timer = window.setTimeout(() => {
+      const today = getTodayDateKey();
+      const dayRecord = {
+        date: today,
+        bodyweight: nutritionLog.bodyweight,
+        dayType: nutritionLog.dayType,
+        kcal: Math.round(nutritionTotals.kcal),
+        p: Math.round(nutritionTotals.p),
+        f: Math.round(nutritionTotals.f),
+        c: Math.round(nutritionTotals.c),
+        waterMl,
+        entries: nutritionLog.entries,
+        updatedAt: new Date().toISOString(),
+      };
+      void saveNutritionDay(dayRecord);
+      if (isCloudConfigured()) {
+        void syncNutritionDayToCloud(dayRecord);
+      }
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [isHydrated, nutritionLog, nutritionTotals, waterMl]);
   const targetProtein = Math.round((nutritionLog.bodyweight || 78) * 2.0);
   const bench1RM = exercises.find((e) => e.id === 'bench')?.oneRepMax || 0;
 
@@ -2228,64 +2154,72 @@ export default function App() {
   const activeReadinessIdx = Math.max(0, readinessOptions.findIndex((o) => o.val === readinessShift));
 
   return (
-    <div
-      className={`min-h-screen relative transition-colors duration-300 ${
-        visualTheme === 'oled' ? 'bg-black' : visualTheme === 'titanium' ? 'bg-[#0B0F17]' : ''
-      }`}
-    >
+    <div className="ic-app-shell min-h-screen relative transition-colors duration-300">
       {/* ================= LIVING MIDNIGHT OBSIDIAN AURORA ================= */}
-      {visualTheme !== 'oled' && (
+      {visualTheme !== 'oled' && visualTheme !== 'ocean-glass' && (
         <LivingAuroraBackdrop activeTab={activeTab} timerRunning={timerRunning} />
       )}
 
       {/* ================= PWA SMART UPDATE PROMPT ================= */}
       <PwaUpdateBanner hapticsEnabled={iosSettings.hapticsEnabled} />
 
-      {/* ================= FULL-SCREEN GYM FOCUS MODE ================= */}
-      <GymFocusModal
-        isOpen={isGymFocusOpen}
-        onClose={() => setIsGymFocusOpen(false)}
-        activeProgramTitle={activeProgram.title}
-        dayTitle={dayObj.title}
-        nextPendingSet={nextPendingSet}
-        completedCount={completedSetsCount}
-        totalCount={flatDaySets.length}
-        dayTonnage={dayTonnage}
-        timerSec={timerSec}
-        timerTotal={timerTotal}
-        timerRunning={timerRunning}
-        startTimer={startTimer}
-        stopTimer={stopTimer}
-        onCompleteSetWithOutcome={handleCompleteSetWithOutcome}
-        onAdjustReadiness={(delta) => setReadinessShift((r) => Math.max(-10, Math.min(10, r + delta)))}
-        readinessShift={readinessShift}
-        hapticsEnabled={iosSettings.hapticsEnabled}
-        soundEnabled={iosSettings.soundEffectsEnabled}
-      />
+      {/* ================= FULL-SCREEN GYM FOCUS MODE (LAZY) ================= */}
+      {isGymFocusOpen && (
+        <Suspense fallback={null}>
+          <GymFocusModal
+            isOpen={isGymFocusOpen}
+            onClose={() => setIsGymFocusOpen(false)}
+            activeProgramTitle={activeProgram.title}
+            dayTitle={dayObj.title}
+            nextPendingSet={nextPendingSet}
+            completedCount={completedSetsCount}
+            totalCount={flatDaySets.length}
+            dayTonnage={dayTonnage}
+            timerSec={timerSec}
+            timerTotal={timerTotal}
+            timerRunning={timerRunning}
+            startTimer={startTimer}
+            stopTimer={stopTimer}
+            onCompleteSetWithOutcome={handleCompleteSetWithOutcome}
+            onAdjustReadiness={(delta) => setReadinessShift((r) => Math.max(-10, Math.min(10, r + delta)))}
+            readinessShift={readinessShift}
+            hapticsEnabled={iosSettings.hapticsEnabled}
+            soundEnabled={iosSettings.soundEffectsEnabled}
+          />
+        </Suspense>
+      )}
 
-      {/* ================= MEDIAPIPE GPU FORM CHECK ================= */}
-      <FormCheckVision
-        isOpen={isFormCheckOpen}
-        onClose={() => setIsFormCheckOpen(false)}
-        hapticsEnabled={iosSettings.hapticsEnabled}
-      />
+      {/* ================= MEDIAPIPE GPU FORM CHECK (LAZY) ================= */}
+      {isFormCheckOpen && (
+        <Suspense fallback={null}>
+          <FormCheckVision
+            isOpen={isFormCheckOpen}
+            onClose={() => setIsFormCheckOpen(false)}
+            hapticsEnabled={iosSettings.hapticsEnabled}
+          />
+        </Suspense>
+      )}
 
-      {/* ================= HUD VIDEO TELEMETRY RECORDER ================= */}
-      <HudVideoRecorder
-        isOpen={Boolean(hudVideoTarget)}
-        onClose={() => setHudVideoTarget(null)}
-        target={
-          hudVideoTarget || {
-            exerciseName: 'IRON CORE',
-            weightKg: null,
-            reps: 1,
-            setNumber: 1,
-            effectivePct: 0,
-            programTitle: activeProgram.title,
-          }
-        }
-        hapticsEnabled={iosSettings.hapticsEnabled}
-      />
+      {/* ================= HUD VIDEO TELEMETRY RECORDER (LAZY) ================= */}
+      {Boolean(hudVideoTarget) && (
+        <Suspense fallback={null}>
+          <HudVideoRecorder
+            isOpen={Boolean(hudVideoTarget)}
+            onClose={() => setHudVideoTarget(null)}
+            target={
+              hudVideoTarget || {
+                exerciseName: 'IRON CORE',
+                weightKg: null,
+                reps: 1,
+                setNumber: 1,
+                effectivePct: 0,
+                programTitle: activeProgram.title,
+              }
+            }
+            hapticsEnabled={iosSettings.hapticsEnabled}
+          />
+        </Suspense>
+      )}
 
       {/* ================= DYNAMIC ISLAND BAR ================= */}
       <DynamicIslandBar
@@ -2544,6 +2478,74 @@ export default function App() {
         {/* ================= TAB 1: АКТИВНАЯ ПРОГРАММА (ZERO-SCROLL FOCUS) ================= */}
         {activeTab === 'workout' && (
           <div className="max-w-3xl mx-auto space-y-3 mt-1">
+            <div className="animate-cascade" style={{ animationDelay: '20ms' }}>
+              {isHeroCompact ? (
+                <div className="slate-card rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex items-center gap-2 text-xs">
+                    <span className="font-bold text-slate-50 truncate">IRON CORE</span>
+                    <span className="opacity-50">·</span>
+                    <span className="font-mono text-[11px] text-slate-200 truncate">
+                      {completedSetsCount}/{flatDaySets.length} подх. · {dayTonnage} кг · {Math.round(nutritionTotals.kcal)} ккал
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsHeroCompact(false)}
+                    className="px-2.5 py-1 rounded-lg bg-white/15 text-[11px] font-semibold text-white shrink-0 active:scale-95"
+                  >
+                    Сводка
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <HeroShowcaseV2
+                    brandName="IRON CORE"
+                    headlineLine1="Твой личный центр"
+                    headlineLine2="силы и питания"
+                    description={
+                      nextPendingSet
+                        ? `Следующий подход: ${nextPendingSet.exerciseName}${
+                            nextPendingSet.weightKg ? ` · ${nextPendingSet.weightKg} кг × ${nextPendingSet.reps}` : ` · ${nextPendingSet.reps} повт.`
+                          }`
+                        : 'Все подходы на сегодня закрыты — можно перейти в 3D, камеру или кухню.'
+                    }
+                    primaryCtaLabel={nextPendingSet ? 'В фокус-режим' : 'План и дни'}
+                    secondaryCtaLabel="КБЖУ и кухня"
+                    scheduleTitle="Сводка дня"
+                    scheduleBadge={isFreestyleMode ? 'FREE' : `НЕД ${weekObj.week}`}
+                    scheduleItems={heroScheduleItems}
+                    features={[
+                      `${dayTonnage} кг тоннаж дня`,
+                      `${Math.round(nutritionTotals.kcal)} / ${targetKcal} ккал`,
+                      `${completedSetsCount} из ${flatDaySets.length} подходов`,
+                    ]}
+                    onStartWorkout={() => {
+                      if (nextPendingSet) {
+                        setIsGymFocusOpen(true);
+                      } else {
+                        setIsDaySelectorSheetOpen(true);
+                      }
+                    }}
+                    onOpenNutrition={() => setActiveTab('fridge')}
+                    onOpen3DOrCamera={() => setIsBarbellSheetOpen(true)}
+                    onNavigateTab={(tab) => {
+                      if (tab === 'workouts') setActiveTab('workout');
+                      if (tab === 'kitchen') setActiveTab('fridge');
+                      if (tab === '3d-camera') setIsBarbellSheetOpen(true);
+                    }}
+                  />
+                  <div className="flex justify-end px-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsHeroCompact(true)}
+                      className="text-[11px] font-medium text-slate-300 hover:text-white transition-colors"
+                    >
+                      Свернуть баннер ↑
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
             {/* Collapsible Freestyle Builder */}
             {isFreestyleMode && isFreestyleBuilderOpen && (
               <div className="animate-cascade slate-card rounded-[24px] p-4 space-y-3">
@@ -4641,9 +4643,10 @@ export default function App() {
               <div className="font-semibold text-slate-50">Тема оформления</div>
               <div className="text-[11px] text-slate-400 mt-0.5">Pure Black OLED экономит батарею на iPhone</div>
             </div>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
               {(
                 [
+                  { id: 'ocean-glass', label: 'Ocean Glass' },
                   { id: 'obsidian', label: 'Obsidian' },
                   { id: 'oled', label: 'Pure OLED' },
                   { id: 'titanium', label: 'Titanium' },
@@ -5092,13 +5095,21 @@ export default function App() {
       >
         <div className="mt-2">
           {activePlateTarget ? (
-            <BarbellWebGL3D
-              targetWeight={activePlateTarget.weight}
-              barbellWeight={activePlateTarget.barbell}
-              title={activePlateTarget.title}
-              hapticsEnabled={iosSettings.hapticsEnabled}
-              soundEnabled={iosSettings.soundEffectsEnabled}
-            />
+            <Suspense
+              fallback={
+                <div className="p-8 text-center text-xs font-mono text-slate-400 slate-well rounded-2xl">
+                  Загрузка 3D WebGL-сцены...
+                </div>
+              }
+            >
+              <BarbellWebGL3D
+                targetWeight={activePlateTarget.weight}
+                barbellWeight={activePlateTarget.barbell}
+                title={activePlateTarget.title}
+                hapticsEnabled={iosSettings.hapticsEnabled}
+                soundEnabled={iosSettings.soundEffectsEnabled}
+              />
+            </Suspense>
           ) : (
             <div className="p-6 text-center text-xs text-slate-400 slate-well rounded-2xl">
               В сегодняшнем дне нет упражнений со штангой от 20 кг.

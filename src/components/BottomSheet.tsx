@@ -92,9 +92,9 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         style={{
           transform: sheetTransform,
           transition: isDragging ? 'none' : 'transform 0.36s var(--spring-ios)',
-          background: 'linear-gradient(180deg, rgba(16, 23, 40, 0.98) 0%, rgba(7, 10, 19, 0.995) 100%)',
-          borderTop: '1px solid rgba(148, 179, 235, 0.2)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.14), 0 -24px 64px rgba(0,0,0,0.96)',
+          background: 'var(--ic-sheet-bg)',
+          borderTop: '1px solid var(--ic-sheet-border)',
+          boxShadow: 'var(--ic-sheet-shadow)',
         }}
         className="w-full max-w-lg rounded-t-[30px] sm:rounded-[28px] max-h-[88dvh] flex flex-col will-change-transform"
       >
@@ -141,7 +141,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         {/* Scrollable Content */}
         <div
           style={{ WebkitOverflowScrolling: 'touch' }}
-          className="px-5 pt-3 pb-[max(1.75rem,calc(1.25rem+env(safe-area-inset-bottom)))] overflow-y-auto overscroll-contain flex-1"
+          className="ios-scroll-container px-5 pt-3 pb-[max(1.75rem,calc(1.25rem+env(safe-area-inset-bottom)))] flex-1"
         >
           {children}
         </div>
