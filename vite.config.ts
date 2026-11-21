@@ -28,8 +28,8 @@ export default defineConfig({
         description: 'Персональное приложение для силовых программ, расчёта весов от 1ПМ и ПП-рецептов',
         start_url: './',
         display: 'standalone',
-        background_color: '#0D0D0F',
-        theme_color: '#0D0D0F',
+        background_color: '#0B0B0D',
+        theme_color: '#0B0B0D',
         orientation: 'portrait',
         icons: [
           {

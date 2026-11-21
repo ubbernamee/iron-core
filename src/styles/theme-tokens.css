@@ -1,84 +1,84 @@
 /* ==========================================================================
-   IRON CORE — Clean Utility Design System (Graphite / iOS Dark / Titanium)
-   No AI neon glow, no rainbow tabs, matte surfaces, single accent token.
+   IRON CORE — iPhone-First Volt Lime & Carbon Design System
+   Matte dark surfaces, crisp 1px top-light depth, single Volt Lime accent.
    ========================================================================== */
 
 :root,
 [data-theme="graphite"] {
-  --ic-surface: #0d0d0f;
-  --ic-bg-gradient: #0d0d0f;
-  --ic-card-bg: #161619;
-  --ic-card-border: rgba(255, 255, 255, 0.07);
-  --ic-card-shadow: none;
-  --ic-well-bg: #1e1e22;
+  --ic-surface: #0b0b0d;
+  --ic-bg-gradient: #0b0b0d;
+  --ic-card-bg: #151518;
+  --ic-card-border: rgba(255, 255, 255, 0.08);
+  --ic-card-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --ic-well-bg: #1d1d22;
   --ic-well-border: rgba(255, 255, 255, 0.06);
-  --ic-pill-bg: #1c1c20;
-  --ic-pill-border: rgba(255, 255, 255, 0.08);
-  --ic-sheet-bg: #161619;
-  --ic-sheet-border: rgba(255, 255, 255, 0.1);
-  --ic-sheet-shadow: 0 -12px 40px rgba(0, 0, 0, 0.65);
-  --ic-bar-bg: rgba(18, 18, 21, 0.94);
-  --ic-bar-border: rgba(255, 255, 255, 0.08);
-  --ic-ink: #f4f4f5;
+  --ic-pill-bg: #1a1a1f;
+  --ic-pill-border: rgba(255, 255, 255, 0.09);
+  --ic-sheet-bg: #151518;
+  --ic-sheet-border: rgba(255, 255, 255, 0.12);
+  --ic-sheet-shadow: 0 -12px 40px rgba(0, 0, 0, 0.72);
+  --ic-bar-bg: rgba(17, 17, 20, 0.94);
+  --ic-bar-border: rgba(255, 255, 255, 0.09);
+  --ic-ink: #f5f5f7;
   --ic-ink-soft: #d4d4d8;
   --ic-ink-muted: #8a8a93;
-  --ic-accent: #ffffff;
+  --ic-accent: #c8f550;
   --ic-accent-fg: #09090b;
-  --ic-accent-soft: rgba(255, 255, 255, 0.1);
-  --ic-status-done-bg: rgba(48, 209, 88, 0.14);
-  --ic-status-done-border: rgba(48, 209, 88, 0.36);
-  --ic-status-done-ink: #5ae27d;
+  --ic-accent-soft: rgba(200, 245, 80, 0.14);
+  --ic-status-done-bg: rgba(48, 209, 88, 0.15);
+  --ic-status-done-border: rgba(48, 209, 88, 0.4);
+  --ic-status-done-ink: #4ade80;
 }
 
 [data-theme="ios-dark"] {
   --ic-surface: #000000;
   --ic-bg-gradient: #000000;
   --ic-card-bg: #1c1c1e;
-  --ic-card-border: rgba(255, 255, 255, 0.08);
-  --ic-card-shadow: none;
-  --ic-well-bg: #2c2c2e;
+  --ic-card-border: rgba(255, 255, 255, 0.09);
+  --ic-card-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --ic-well-bg: #262629;
   --ic-well-border: rgba(255, 255, 255, 0.07);
-  --ic-pill-bg: #242426;
-  --ic-pill-border: rgba(255, 255, 255, 0.09);
+  --ic-pill-bg: #222225;
+  --ic-pill-border: rgba(255, 255, 255, 0.1);
   --ic-sheet-bg: #1c1c1e;
   --ic-sheet-border: rgba(255, 255, 255, 0.12);
-  --ic-sheet-shadow: 0 -12px 40px rgba(0, 0, 0, 0.8);
-  --ic-bar-bg: rgba(22, 22, 24, 0.94);
+  --ic-sheet-shadow: 0 -12px 40px rgba(0, 0, 0, 0.85);
+  --ic-bar-bg: rgba(20, 20, 22, 0.95);
   --ic-bar-border: rgba(255, 255, 255, 0.1);
   --ic-ink: #ffffff;
   --ic-ink-soft: #e5e5ea;
   --ic-ink-muted: #8e8e93;
-  --ic-accent: #0a84ff;
-  --ic-accent-fg: #ffffff;
-  --ic-accent-soft: rgba(10, 132, 255, 0.15);
-  --ic-status-done-bg: rgba(48, 209, 88, 0.15);
-  --ic-status-done-border: rgba(48, 209, 88, 0.38);
+  --ic-accent: #c8f550;
+  --ic-accent-fg: #09090b;
+  --ic-accent-soft: rgba(200, 245, 80, 0.14);
+  --ic-status-done-bg: rgba(48, 209, 88, 0.16);
+  --ic-status-done-border: rgba(48, 209, 88, 0.42);
   --ic-status-done-ink: #30d158;
 }
 
 [data-theme="titanium"] {
   --ic-surface: #09090b;
   --ic-bg-gradient: #09090b;
-  --ic-card-bg: #121215;
+  --ic-card-bg: #121216;
   --ic-card-border: rgba(255, 255, 255, 0.08);
-  --ic-card-shadow: none;
-  --ic-well-bg: #1a1a1f;
+  --ic-card-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --ic-well-bg: #1a1a20;
   --ic-well-border: rgba(255, 255, 255, 0.07);
-  --ic-pill-bg: #18181b;
+  --ic-pill-bg: #18181d;
   --ic-pill-border: rgba(255, 255, 255, 0.09);
-  --ic-sheet-bg: #121215;
+  --ic-sheet-bg: #121216;
   --ic-sheet-border: rgba(255, 255, 255, 0.12);
-  --ic-sheet-shadow: 0 -12px 40px rgba(0, 0, 0, 0.78);
-  --ic-bar-bg: rgba(12, 12, 14, 0.95);
+  --ic-sheet-shadow: 0 -12px 40px rgba(0, 0, 0, 0.8);
+  --ic-bar-bg: rgba(12, 12, 15, 0.95);
   --ic-bar-border: rgba(255, 255, 255, 0.08);
   --ic-ink: #fafafa;
   --ic-ink-soft: #d4d4d8;
   --ic-ink-muted: #71717a;
-  --ic-accent: #fafafa;
+  --ic-accent: #c8f550;
   --ic-accent-fg: #09090b;
-  --ic-accent-soft: rgba(250, 250, 250, 0.1);
-  --ic-status-done-bg: rgba(48, 209, 88, 0.14);
-  --ic-status-done-border: rgba(48, 209, 88, 0.35);
+  --ic-accent-soft: rgba(200, 245, 80, 0.14);
+  --ic-status-done-bg: rgba(48, 209, 88, 0.15);
+  --ic-status-done-border: rgba(48, 209, 88, 0.38);
   --ic-status-done-ink: #4ade80;
 }
 
@@ -97,65 +97,71 @@ body {
   overflow-x: clip;
 }
 
-/* Flat, crisp matte surfaces (no AI glass blur / heavy drop shadows) */
+/* Tactile matte cards with crisp 1px top highlight */
 .slate-card {
   background: var(--ic-card-bg) !important;
   border: 1px solid var(--ic-card-border) !important;
-  box-shadow: none !important;
+  box-shadow: var(--ic-card-shadow) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  border-radius: 16px !important;
+  border-radius: 18px !important;
 }
 
 .slate-card-active {
-  border-color: rgba(255, 255, 255, 0.14) !important;
-  box-shadow: none !important;
+  border-color: rgba(var(--accent-rgb), 0.32) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
 }
 
 .slate-well {
   background: var(--ic-well-bg) !important;
   border: 1px solid var(--ic-well-border) !important;
   box-shadow: none !important;
-  border-radius: 12px !important;
+  border-radius: 14px !important;
 }
 
 .slate-pill {
   background: var(--ic-pill-bg) !important;
   border: 1px solid var(--ic-pill-border) !important;
-  box-shadow: none !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 
+/* Highlighted active exercise row in Volt Lime */
+.ic-active-exercise {
+  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.075) 0%, rgba(var(--accent-rgb), 0.015) 65%, transparent 100%) !important;
+  box-shadow: inset 3px 0 0 0 var(--ic-accent), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+}
+
 .ios-glass-card {
   background: var(--ic-bar-bg) !important;
-  border: 1px solid var(--ic-bar-border) !important;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border-radius: 16px !important;
+  border: 1px solid rgba(var(--accent-rgb), 0.22) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  border-radius: 18px !important;
 }
 
 .ios-blur-bar {
   background: var(--ic-bar-bg) !important;
   border-top: 1px solid var(--ic-bar-border) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
 }
 
 .top-fade-cap {
-  background: linear-gradient(180deg, var(--ic-surface) 0%, rgba(13, 13, 15, 0) 100%) !important;
+  background: linear-gradient(180deg, var(--ic-surface) 0%, rgba(11, 11, 13, 0) 100%) !important;
 }
 
 .island-pill {
   background: var(--ic-card-bg) !important;
   border: 1px solid var(--ic-card-border) !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 
-/* Unify primary action buttons to the single chosen accent (kill rainbow tabs) */
+/* Unified Volt Lime primary buttons across all tabs */
 .ic-app-shell .bg-sky-400,
 .ic-app-shell .bg-amber-400,
 .ic-app-shell .bg-teal-400,
@@ -166,7 +172,7 @@ body {
   box-shadow: none !important;
 }
 
-/* Unify secondary accent texts (keep calm contrast instead of neon rainbow) */
+/* Unified Volt Lime accent typography */
 .ic-app-shell .text-sky-300,
 .ic-app-shell .text-sky-200,
 .ic-app-shell .text-amber-300,
@@ -177,14 +183,14 @@ body {
   color: var(--ic-accent) !important;
 }
 
-/* Keep green purely for completed / live status */
+/* Green reserved strictly for completed / live status */
 .ic-app-shell .text-emerald-300,
 .ic-app-shell .text-emerald-200,
 .ic-app-shell .text-emerald-400 {
   color: var(--ic-status-done-ink) !important;
 }
 
-/* Neutralize dark slate utility leftovers to match active matte theme */
+/* Neutralize dark slate utility classes to active matte carbon */
 .ic-app-shell .bg-slate-950,
 .ic-app-shell .bg-slate-950\/90,
 .ic-app-shell .bg-slate-950\/85,
@@ -204,7 +210,7 @@ body {
 }
 
 .ic-app-shell .bg-slate-800 {
-  background-color: #2a2a30 !important;
+  background-color: #27272e !important;
 }
 
 .ic-app-shell .text-slate-400,
@@ -212,12 +218,12 @@ body {
   color: var(--ic-ink-muted) !important;
 }
 
-/* Clean set buttons without neon glow or shockwave */
+/* Crisp set buttons optimized for iPhone thumb tapping */
 .liquid-set-btn {
   background: var(--ic-card-bg) !important;
   border: 1px solid var(--ic-card-border) !important;
   color: var(--ic-ink-soft) !important;
-  border-radius: 10px !important;
+  border-radius: 12px !important;
 }
 
 .liquid-set-btn::before {
@@ -227,8 +233,8 @@ body {
 .liquid-set-btn.next-set-beacon {
   animation: none !important;
   background: var(--ic-accent-soft) !important;
-  border: 1px solid var(--ic-accent) !important;
-  color: var(--ic-ink) !important;
+  border: 1.5px solid var(--ic-accent) !important;
+  color: var(--ic-accent) !important;
   box-shadow: none !important;
 }
 
@@ -245,10 +251,14 @@ body {
   animation: none !important;
 }
 
-/* Bottom TabBar capsule */
+/* Bottom iOS TabBar active capsule with subtle Volt Lime accent */
 nav.ios-blur-bar .magnetic-pill > div {
-  background: var(--ic-well-bg) !important;
-  border: 1px solid var(--ic-well-border) !important;
-  border-radius: 12px !important;
+  background: var(--ic-accent-soft) !important;
+  border: 1px solid rgba(var(--accent-rgb), 0.28) !important;
+  border-radius: 14px !important;
   box-shadow: none !important;
+}
+
+nav.ios-blur-bar button.text-slate-50 {
+  color: var(--ic-accent) !important;
 }

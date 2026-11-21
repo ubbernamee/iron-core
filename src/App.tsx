@@ -63,7 +63,7 @@ import {
   QUICK_PROGRAM_PRESETS,
 } from './data/programs';
 import { NativeiOSBridge } from './engine/iosBridge';
-import { calculateDOTS, calculateE1RM, roundToStep } from './engine/math';
+import { calculateDOTS, calculateE1RM, calculatePlatesPerSide, roundToStep } from './engine/math';
 import { parseUniversalProgram } from './engine/parser';
 import { extractTextFromPdfArrayBuffer } from './engine/pdfImport';
 import {
@@ -267,7 +267,7 @@ export default function App() {
     loadLocalJson<VisualTheme>('ironcore_visual_theme_v1', 'graphite')
   );
   const [accentPreset, setAccentPreset] = useState<AccentPreset>(() =>
-    loadLocalJson<AccentPreset>('ironcore_accent_preset_v1', 'mono')
+    loadLocalJson<AccentPreset>('ironcore_accent_preset_v1', 'lime')
   );
 
   // Kitchen & Recipes Pro States
@@ -1886,7 +1886,7 @@ export default function App() {
 
       // Subtle glow orb
       const presetObj = ACCENT_PRESETS.find((p) => p.id === accentPreset);
-      const accentHex = presetObj ? presetObj.hex : '#F4F4F5';
+      const accentHex = presetObj ? presetObj.hex : '#C8F550';
       const orb = ctx.createRadialGradient(880, 180, 20, 880, 180, 480);
       orb.addColorStop(0, `${accentHex}33`);
       orb.addColorStop(1, 'rgba(0,0,0,0)');
@@ -2344,8 +2344,8 @@ export default function App() {
                 }}
                 className={`shrink-0 px-3 py-2.5 rounded-2xl border text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all ${
                   isFreestyleMode
-                    ? 'bg-emerald-400 text-slate-950 border-emerald-300 shadow-lg shadow-emerald-400/20'
-                    : 'slate-pill text-emerald-300 border-slate-400/15'
+                    ? 'bg-sky-400 text-slate-950 border-transparent'
+                    : 'slate-pill text-slate-200 border-white/10'
                 }`}
                 title="Свободная тренировка"
               >
@@ -2355,14 +2355,14 @@ export default function App() {
             </div>
           )}
 
-          {/* Row 3 (Workout tab only): Ultra-slim Secondary Tools Strip (No duplicates) */}
+          {/* Row 3 (Workout tab only): Unified Matte Tools Strip */}
           {activeTab === 'workout' && (
             <div className="grid grid-cols-4 gap-1.5">
               <button
                 onClick={() => openHudRecorder()}
-                className="py-2 px-2 rounded-xl bg-rose-500/12 hover:bg-rose-500/20 border border-rose-400/25 text-rose-200 text-[11px] font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                className="py-2 px-2 rounded-xl slate-pill text-slate-200 hover:text-white text-[11px] font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
               >
-                <VideoIcon className="w-3.5 h-3.5 shrink-0" />
+                <VideoIcon className="w-3.5 h-3.5 shrink-0 text-sky-300" />
                 <span>HUD</span>
               </button>
               <button
@@ -2370,9 +2370,9 @@ export default function App() {
                   NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
                   setIsBarbellSheetOpen(true);
                 }}
-                className="py-2 px-2 rounded-xl slate-pill text-sky-300 text-[11px] font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                className="py-2 px-2 rounded-xl slate-pill text-slate-200 hover:text-white text-[11px] font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
               >
-                <Cube3DIcon className="w-3.5 h-3.5 shrink-0" />
+                <Cube3DIcon className="w-3.5 h-3.5 shrink-0 text-sky-300" />
                 <span>3D гриф</span>
               </button>
               <button
@@ -2380,16 +2380,16 @@ export default function App() {
                   NativeiOSBridge.haptic('medium', iosSettings.hapticsEnabled);
                   setIsFormCheckOpen(true);
                 }}
-                className="py-2 px-2 rounded-xl slate-pill text-emerald-300 text-[11px] font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                className="py-2 px-2 rounded-xl slate-pill text-slate-200 hover:text-white text-[11px] font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
               >
-                <CameraIcon className="w-3.5 h-3.5 shrink-0" />
+                <CameraIcon className="w-3.5 h-3.5 shrink-0 text-sky-300" />
                 <span>Техника</span>
               </button>
               <button
                 onClick={handleShareWorkout}
-                className="py-2 px-2 rounded-xl slate-pill text-slate-300 text-[11px] font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                className="py-2 px-2 rounded-xl slate-pill text-slate-200 hover:text-white text-[11px] font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
               >
-                <ShareIcon className="w-3.5 h-3.5 shrink-0" />
+                <ShareIcon className="w-3.5 h-3.5 shrink-0 text-slate-400" />
                 <span>Итоги</span>
               </button>
             </div>
@@ -2602,7 +2602,7 @@ export default function App() {
                   </div>
 
                   {/* Glowing Workout Progress Bar */}
-                  <div className="w-full h-1.5 rounded-full bg-slate-950/90 overflow-hidden">
+                  <div className="w-full h-2 rounded-full bg-slate-950/90 overflow-hidden">
                     <div
                       style={{
                         width: `${flatDaySets.length > 0 ? Math.round((completedSetsCount / flatDaySets.length) * 100) : 0}%`,
@@ -2699,9 +2699,9 @@ export default function App() {
                         key={item.extraId || idx}
                         className={`p-4 transition-all duration-300 ${
                           isCurrentItem
-                            ? 'bg-sky-400/[0.045] ring-1 ring-inset ring-sky-400/35 shadow-[inset_3px_0_0_0_rgba(56,189,248,0.95)]'
+                            ? 'ic-active-exercise'
                             : !allBlocksDone && nextPendingSet
-                            ? 'opacity-70 hover:opacity-100'
+                            ? 'opacity-75 hover:opacity-100'
                             : 'opacity-100'
                         }`}
                       >
@@ -2723,7 +2723,7 @@ export default function App() {
                                 <span className="font-mono text-xs text-slate-500">{idx + 1}.</span>
                                 <span className="text-sm font-semibold text-slate-50">{item.name}</span>
                                 {item.isBase && (
-                                  <span className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-sky-400/15 text-sky-300 border border-sky-400/25">
+                                  <span className="px-2 py-0.5 text-[10px] font-mono font-semibold rounded-md bg-white/[0.06] text-slate-200 border border-white/10">
                                     1ПМ {item.oneRepMax} кг
                                   </span>
                                 )}
@@ -2868,31 +2868,56 @@ export default function App() {
                               }`}
                             >
                               <div className="flex items-center justify-between gap-2 mb-2.5">
-                                <div className="flex items-baseline gap-2 flex-wrap">
-                                  {b.weightKg ? (
-                                    <>
-                                      <span
-                                        className={`font-mono tabular text-lg font-extrabold tracking-tight ${
-                                          isCurrentItem ? 'text-sky-300' : 'text-slate-50'
-                                        }`}
-                                      >
-                                        <AnimatedNumber value={b.weightKg} /> кг
+                                <div className="min-w-0">
+                                  <div className="flex items-baseline gap-2 flex-wrap">
+                                    {b.weightKg ? (
+                                      <>
+                                        <span
+                                          className={`font-mono tabular text-2xl font-black tracking-tight leading-none ${
+                                            isCurrentItem ? 'text-sky-300' : 'text-slate-50'
+                                          }`}
+                                        >
+                                          <AnimatedNumber value={b.weightKg} />{' '}
+                                          <span className="text-xs font-bold opacity-75">кг</span>
+                                        </span>
+                                        <span className="font-mono tabular text-[11px] text-slate-400">
+                                          {b.effectivePct > 0 ? `${b.effectivePct}% · ` : ''}
+                                          {b.reps} повт. × {b.sets}
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span className="font-mono tabular text-sm font-bold text-slate-200">
+                                        {b.reps} повт. × {b.sets} подх.
                                       </span>
-                                      <span className="font-mono tabular text-[11px] text-slate-400">
-                                        {b.effectivePct > 0 ? `${b.effectivePct}% × ` : ''}
-                                        {b.reps} повт. × {b.sets}
-                                      </span>
-                                    </>
-                                  ) : (
-                                    <span className="font-mono tabular text-xs text-slate-300">
-                                      {b.reps} повт. × {b.sets} подх.
-                                    </span>
-                                  )}
+                                    )}
+                                  </div>
+
+                                  {b.weightKg && b.weightKg > (b.barbellWeight || 20) && (() => {
+                                    const { plates } = calculatePlatesPerSide(b.weightKg, b.barbellWeight || 20);
+                                    if (plates.length === 0) return null;
+                                    return (
+                                      <div className="flex items-center gap-1 flex-wrap mt-2">
+                                        <span className="text-[10px] font-mono text-slate-500 mr-0.5">на сторону:</span>
+                                        {plates.map((p, pIdx) => (
+                                          <span
+                                            key={`${p.weight}-${pIdx}`}
+                                            style={{
+                                              borderColor: p.color,
+                                              backgroundColor: `${p.color}1F`,
+                                            }}
+                                            className="px-1.5 py-0.5 rounded border font-mono tabular text-[10px] font-bold text-slate-100 leading-none"
+                                          >
+                                            {p.label}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
 
                                 {b.weightKg && b.weightKg >= 20 && (
-                                  <span className="text-[10px] font-mono text-sky-300/80 inline-flex items-center gap-1 shrink-0">
-                                    <Cube3DIcon className="w-3 h-3" />
+                                  <span className="px-2 py-1 rounded-lg bg-white/[0.05] border border-white/10 text-[10px] font-mono text-slate-300 inline-flex items-center gap-1 shrink-0 self-start">
+                                    <Cube3DIcon className="w-3 h-3 text-sky-300" />
                                     <span>3D</span>
                                   </span>
                                 )}
