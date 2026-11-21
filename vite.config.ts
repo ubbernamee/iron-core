@@ -23,13 +23,13 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'IRON CORE // Next-Gen AI, CV & Cloud OS',
+        name: 'IRON CORE',
         short_name: 'IRON CORE',
         description: 'Персональное приложение для силовых программ, расчёта весов от 1ПМ и ПП-рецептов',
         start_url: './',
         display: 'standalone',
-        background_color: '#0b395c',
-        theme_color: '#0b395c',
+        background_color: '#0D0D0F',
+        theme_color: '#0D0D0F',
         orientation: 'portrait',
         icons: [
           {

@@ -25,9 +25,9 @@ export const PwaUpdateBanner: React.FC<PwaUpdateBannerProps> = ({ hapticsEnabled
   return (
     <div className="fixed top-[calc(3.8rem+env(safe-area-inset-top))] left-0 right-0 px-4 z-50 flex justify-center pointer-events-none">
       <div className="pointer-events-auto ios-glass-card rounded-2xl px-4 py-2.5 flex items-center gap-3 max-w-md w-full animate-cascade">
-        <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping shrink-0" />
+        <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-bold text-slate-50">Доступно обновление IRON CORE</div>
+          <div className="text-xs font-bold text-slate-50">Доступно обновление</div>
           <div className="text-[10px] text-slate-400">Новая версия готова к запуску</div>
         </div>
         <button

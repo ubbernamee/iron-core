@@ -75,7 +75,7 @@ export const DynamicIslandBar: React.FC<DynamicIslandBarProps> = ({
         }}
         className={`pointer-events-auto island-pill cursor-pointer select-none overflow-hidden ${
           isUrgent ? 'island-urgent' : ''
-        } ${expanded ? 'w-full max-w-md rounded-[32px] p-4' : 'rounded-full px-3.5 py-2 max-w-[92vw]'}`}
+        } ${expanded ? 'w-full max-w-md rounded-[20px] p-4' : 'rounded-full px-3.5 py-2 max-w-[92vw]'}`}
       >
         {!expanded ? (
           <div className="flex items-center justify-between gap-3">
@@ -100,7 +100,7 @@ export const DynamicIslandBar: React.FC<DynamicIslandBarProps> = ({
 
               <span
                 className={`font-mono tabular text-xs font-bold truncate ${
-                  timerRunning ? (isUrgent ? 'text-emerald-300 animate-pulse' : 'text-emerald-400') : 'text-slate-50'
+                  timerRunning ? (isUrgent ? 'text-emerald-300 ' : 'text-emerald-400') : 'text-slate-50'
                 }`}
               >
                 {timerRunning
@@ -125,7 +125,7 @@ export const DynamicIslandBar: React.FC<DynamicIslandBarProps> = ({
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-sky-300">
-                  <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-sky-400 " />
                   {activeProgramTitle} · {completedCount}/{totalCount}
                 </div>
                 <div className="text-sm font-bold text-slate-50 mt-0.5 truncate">
@@ -154,15 +154,15 @@ export const DynamicIslandBar: React.FC<DynamicIslandBarProps> = ({
               <div className="slate-well rounded-2xl p-2.5 flex items-center gap-3">
                 <span
                   className={`font-mono tabular text-base font-bold ${
-                    isUrgent ? 'text-emerald-300 animate-pulse' : 'text-emerald-400'
+                    isUrgent ? 'text-emerald-300 ' : 'text-emerald-400'
                   }`}
                 >
-                  ⏱ {formatTime(timerSec)}
+                  {formatTime(timerSec)}
                 </span>
                 <div className="flex-1 h-2 bg-slate-950 rounded-full overflow-hidden">
                   <div
                     style={{ width: `${progressPct}%` }}
-                    className="h-full bg-gradient-to-r from-emerald-400 to-sky-400 transition-all duration-500 linear"
+                    className="h-full bg-emerald-400 transition-all duration-500 linear"
                   />
                 </div>
                 <button
@@ -185,7 +185,7 @@ export const DynamicIslandBar: React.FC<DynamicIslandBarProps> = ({
                   onClick={() => startTimer(t.sec)}
                   className="py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 font-mono text-xs text-slate-100 active:scale-95 transition-all"
                 >
-                  ⏱ {t.label}
+                  {t.label}
                 </button>
               ))}
             </div>
@@ -217,7 +217,7 @@ export const DynamicIslandBar: React.FC<DynamicIslandBarProps> = ({
                 }}
                 className="px-3 py-2.5 rounded-xl bg-slate-900 text-slate-100 text-xs font-medium active:scale-95"
               >
-                ⚙️
+                Настройки
               </button>
             </div>
           </div>

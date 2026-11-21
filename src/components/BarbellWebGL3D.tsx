@@ -946,13 +946,13 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
   ];
 
   return (
-    <div className="slate-card slate-card-active rounded-[26px] p-4 relative overflow-hidden select-none">
+    <div className="slate-card slate-card-active rounded-2xl p-4 relative overflow-hidden select-none">
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-2.5">
         <div className="min-w-0">
           <div className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-sky-300 font-semibold">
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
-            3D Pro Studio · {customGlbLoaded ? 'GLB Модель' : 'PBR + Bloom'}
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 " />
+            3D-сборка штанги
           </div>
           <div className="text-sm font-semibold text-slate-50 mt-0.5 leading-snug truncate">{title}</div>
         </div>
@@ -1052,7 +1052,7 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
                 : 'bg-slate-950/85 border-slate-400/15 text-slate-400'
             }`}
           >
-            🔥 Мышцы
+            Мышцы
           </button>
           <button
             onClick={(e) => {

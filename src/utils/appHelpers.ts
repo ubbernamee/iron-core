@@ -106,16 +106,15 @@ export function calculateFemaleDOTS(totalKg: number, bwKg: number): number {
   return Number(((totalKg * 500) / denom).toFixed(1));
 }
 
-export type VisualTheme = 'ocean-glass' | 'obsidian' | 'oled' | 'titanium';
-export type AccentPreset = 'auto' | 'sky' | 'emerald' | 'rose' | 'violet' | 'amber';
+export type VisualTheme = 'graphite' | 'ios-dark' | 'titanium';
+export type AccentPreset = 'mono' | 'orange' | 'lime' | 'blue' | 'green';
 
-export const ACCENT_PRESETS: { id: AccentPreset; label: string; hex: string; rgb: string }[] = [
-  { id: 'auto', label: 'Авто', hex: '#38BDF8', rgb: '56, 189, 248' },
-  { id: 'sky', label: 'Cyan', hex: '#38BDF8', rgb: '56, 189, 248' },
-  { id: 'emerald', label: 'Mint', hex: '#34D399', rgb: '52, 211, 153' },
-  { id: 'rose', label: 'Crimson', hex: '#FB7185', rgb: '251, 113, 133' },
-  { id: 'violet', label: 'Violet', hex: '#A78BFA', rgb: '167, 139, 250' },
-  { id: 'amber', label: 'Gold', hex: '#FBBF24', rgb: '251, 191, 36' },
+export const ACCENT_PRESETS: { id: AccentPreset; label: string; hex: string; fg: string; rgb: string }[] = [
+  { id: 'mono', label: 'Белый', hex: '#F4F4F5', fg: '#09090B', rgb: '244, 244, 245' },
+  { id: 'orange', label: 'Оранжевый', hex: '#FF5A1F', fg: '#FFFFFF', rgb: '255, 90, 31' },
+  { id: 'lime', label: 'Лайм', hex: '#C8F550', fg: '#09090B', rgb: '200, 245, 80' },
+  { id: 'blue', label: 'iOS Синий', hex: '#0A84FF', fg: '#FFFFFF', rgb: '10, 132, 255' },
+  { id: 'green', label: 'Зелёный', hex: '#30D158', fg: '#09090B', rgb: '48, 209, 88' },
 ];
 
 export type KitchenSubTab = 'ration' | 'fridge' | 'shopping';

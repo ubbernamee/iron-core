@@ -96,7 +96,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
           borderTop: '1px solid var(--ic-sheet-border)',
           boxShadow: 'var(--ic-sheet-shadow)',
         }}
-        className="w-full max-w-lg rounded-t-[30px] sm:rounded-[28px] max-h-[88dvh] flex flex-col will-change-transform"
+        className="w-full max-w-lg rounded-t-[20px] sm:rounded-[18px] max-h-[88dvh] flex flex-col will-change-transform"
       >
         {/* Drag Handle & Header */}
         <div
@@ -131,7 +131,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
                 NativeiOSBridge.haptic('light', hapticsEnabled);
                 onClose();
               }}
-              className="w-8 h-8 rounded-full bg-slate-800/90 text-slate-300 hover:text-white flex items-center justify-center font-mono text-xs shrink-0 active:scale-90 transition-transform"
+              className="w-8 h-8 rounded-full bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center font-mono text-xs shrink-0 active:scale-90 transition-transform"
             >
               ✕
             </button>

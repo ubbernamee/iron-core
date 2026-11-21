@@ -498,7 +498,7 @@ export const HudVideoRecorder: React.FC<HudVideoRecorderProps> = ({
       <div className="px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-2.5 flex items-center justify-between gap-2 bg-slate-950/90 border-b border-slate-400/10">
         <div className="min-w-0">
           <div className="text-xs font-extrabold tracking-wide text-sky-300 font-mono">
-            🎬 HUD VIDEO TELEMETRY
+            Запись с телеметрией
           </div>
           <div className="text-[11px] text-slate-400 truncate">
             {target.exerciseName} {target.weightKg ? `· ${target.weightKg} кг` : ''} × {target.reps}
@@ -568,13 +568,13 @@ export const HudVideoRecorder: React.FC<HudVideoRecorderProps> = ({
                 onClick={handleRetake}
                 className="py-3.5 rounded-2xl bg-slate-900 border border-slate-400/15 text-slate-200 text-xs font-bold active:scale-95"
               >
-                ↺ Переснять
+                Переснять
               </button>
               <button
                 onClick={() => void handleShareOrSave()}
                 className="py-3.5 rounded-2xl bg-sky-400 text-slate-950 text-xs font-extrabold shadow-lg shadow-sky-400/25 active:scale-95"
               >
-                ↗ Сохранить / Поделиться
+                Сохранить
               </button>
             </div>
           </div>
@@ -620,7 +620,7 @@ export const HudVideoRecorder: React.FC<HudVideoRecorderProps> = ({
                   }}
                   className="px-2.5 py-1.5 rounded-xl bg-slate-900 text-slate-200 font-mono text-[11px] font-bold disabled:opacity-40"
                 >
-                  🔄 Камера
+                  Камера
                 </button>
               </div>
             </div>
@@ -633,7 +633,7 @@ export const HudVideoRecorder: React.FC<HudVideoRecorderProps> = ({
                   className="w-full py-3.5 rounded-2xl bg-rose-500 text-white font-mono text-sm font-extrabold flex items-center justify-center gap-2 shadow-lg shadow-rose-500/30 active:scale-95"
                 >
                   <span>■</span>
-                  <span>ОСТАНОВИТЬ ({formatRecTime(recMs)})</span>
+                  <span>Стоп ({formatRecTime(recMs)})</span>
                 </button>
               ) : (
                 <button
@@ -641,7 +641,7 @@ export const HudVideoRecorder: React.FC<HudVideoRecorderProps> = ({
                   className="w-full py-3.5 rounded-2xl bg-sky-400 text-slate-950 font-mono text-sm font-extrabold flex items-center justify-center gap-2 shadow-lg shadow-sky-400/25 active:scale-95"
                 >
                   <span>●</span>
-                  <span>НАЧАТЬ ЗАПИСЬ С HUD</span>
+                  <span>Начать запись</span>
                 </button>
               )}
             </div>

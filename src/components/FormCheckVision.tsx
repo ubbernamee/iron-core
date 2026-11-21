@@ -183,11 +183,11 @@ export const FormCheckVision: React.FC<FormCheckVisionProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[75] bg-[#03050A]/98 backdrop-blur-2xl flex flex-col justify-between p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+    <div className="fixed inset-0 z-[75] bg-[#0d0d0f] flex flex-col justify-between p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]">
       <div className="flex items-center justify-between gap-2 max-w-xl w-full mx-auto">
         <div>
           <div className="text-[10px] font-mono uppercase tracking-widest text-sky-300 font-bold">
-            MediaPipe GPU · AI Form Check
+            Анализ техники
           </div>
           <div className="text-xs text-slate-400 mt-0.5">{status}</div>
         </div>
@@ -199,7 +199,7 @@ export const FormCheckVision: React.FC<FormCheckVisionProps> = ({ isOpen, onClos
             }}
             className="px-3 py-2 rounded-xl slate-pill text-xs font-mono text-slate-100 active:scale-90"
           >
-            🔄 Камера
+            Камера
           </button>
           <button
             onClick={() => {
@@ -214,13 +214,13 @@ export const FormCheckVision: React.FC<FormCheckVisionProps> = ({ isOpen, onClos
       </div>
 
       {/* Camera + Live Skeleton Canvas */}
-      <div className="relative flex-1 max-w-xl w-full mx-auto my-3 rounded-[26px] overflow-hidden slate-well">
+      <div className="relative flex-1 max-w-xl w-full mx-auto my-3 rounded-2xl overflow-hidden slate-well">
         <video ref={videoRef} playsInline muted className="w-full h-full object-cover" />
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
 
         {metrics.valgusAlert && (
-          <div className="absolute top-3 inset-x-3 py-2 px-3 rounded-2xl bg-red-500/85 text-white font-mono text-xs font-extrabold text-center animate-pulse">
-            ⚠️ Внимание: завал коленей внутрь (Вальгус)
+          <div className="absolute top-3 inset-x-3 py-2 px-3 rounded-2xl bg-red-500/85 text-white font-mono text-xs font-extrabold text-center ">
+            Завал коленей внутрь (вальгус)
           </div>
         )}
       </div>

@@ -1,6 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatedNumber } from './components/AnimatedNumber';
-import { HeroShowcaseV2, type HeroScheduleItem } from './components/HeroShowcaseV2';
 const BarbellWebGL3D = lazy(() => import('./components/BarbellWebGL3D').then((m) => ({ default: m.BarbellWebGL3D })));
 import { BottomSheet } from './components/BottomSheet';
 import { DynamicIslandBar, PendingSetInfo } from './components/DynamicIslandBar';
@@ -54,7 +53,7 @@ import {
 } from './services/cloudSync';
 import { enableBackgroundPush, scheduleBackgroundPush, sendLocalRestNotification } from './services/webPush';
 import { createVoiceCoach, isVoiceSupported, VoiceCoachController, VoiceCommand } from './services/voiceCoach';
-import { LivingAuroraBackdrop, TAB_THEMES } from './components/LivingAuroraBackdrop';
+import { TAB_THEMES } from './components/LivingAuroraBackdrop';
 import { PwaUpdateBanner } from './components/PwaUpdateBanner';
 import {
   DEFAULT_EXERCISES,
@@ -265,10 +264,10 @@ export default function App() {
 
   // Visual Theme (OLED / Obsidian / Titanium) & Accent
   const [visualTheme, setVisualTheme] = useState<VisualTheme>(() =>
-    loadLocalJson<VisualTheme>('ironcore_visual_theme_v1', 'ocean-glass')
+    loadLocalJson<VisualTheme>('ironcore_visual_theme_v1', 'graphite')
   );
   const [accentPreset, setAccentPreset] = useState<AccentPreset>(() =>
-    loadLocalJson<AccentPreset>('ironcore_accent_preset_v1', 'auto')
+    loadLocalJson<AccentPreset>('ironcore_accent_preset_v1', 'mono')
   );
 
   // Kitchen & Recipes Pro States
@@ -308,7 +307,6 @@ export default function App() {
   // Native iOS UX Redesign States
   const [isBarbellSheetOpen, setIsBarbellSheetOpen] = useState(false);
   const [isDaySelectorSheetOpen, setIsDaySelectorSheetOpen] = useState(false);
-  const [isHeroCompact, setIsHeroCompact] = useState(false);
   const [expandedDoneItems, setExpandedDoneItems] = useState<Record<string, boolean>>({});
   const [openMenuIdx, setOpenMenuIdx] = useState<number | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -390,26 +388,25 @@ export default function App() {
     };
   }, []);
 
-  // Sync CSS accent variables with active tab atmosphere or user preset
+  // Sync single unified accent across the entire app (no rainbow per-tab colors)
   useEffect(() => {
-    const preset = ACCENT_PRESETS.find((p) => p.id === accentPreset);
-    const useCustom = preset && accentPreset !== 'auto';
-    document.documentElement.style.setProperty('--accent-rgb', useCustom ? preset.rgb : currentTheme.accentRgb);
-    document.documentElement.style.setProperty('--accent-hex', useCustom ? preset.hex : currentTheme.accentHex);
-  }, [currentTheme, accentPreset]);
+    const preset = ACCENT_PRESETS.find((p) => p.id === accentPreset) || ACCENT_PRESETS[0];
+    document.documentElement.style.setProperty('--accent-rgb', preset.rgb);
+    document.documentElement.style.setProperty('--accent-hex', preset.hex);
+    document.documentElement.style.setProperty('--ic-accent', preset.hex);
+    document.documentElement.style.setProperty('--ic-accent-fg', preset.fg);
+    document.documentElement.style.setProperty('--ic-accent-soft', `rgba(${preset.rgb}, 0.14)`);
+  }, [accentPreset]);
 
   useEffect(() => {
     try {
-      localStorage.setItem('ironcore_visual_theme_v1', JSON.stringify(visualTheme));
-      document.documentElement.setAttribute('data-theme', visualTheme);
-      const bg =
-        visualTheme === 'ocean-glass'
-          ? '#0b395c'
-          : visualTheme === 'oled'
-          ? '#000000'
-          : visualTheme === 'titanium'
-          ? '#0b0f17'
-          : '#04060b';
+      const safeTheme: VisualTheme =
+        visualTheme === 'ios-dark' || visualTheme === 'titanium' || visualTheme === 'graphite'
+          ? visualTheme
+          : 'graphite';
+      localStorage.setItem('ironcore_visual_theme_v1', JSON.stringify(safeTheme));
+      document.documentElement.setAttribute('data-theme', safeTheme);
+      const bg = safeTheme === 'ios-dark' ? '#000000' : safeTheme === 'titanium' ? '#09090b' : '#0d0d0f';
       document.body.style.backgroundColor = bg;
       const meta = document.querySelector('meta[name="theme-color"]');
       if (meta) meta.setAttribute('content', bg);
@@ -916,7 +913,7 @@ export default function App() {
         setTimerRunning(false);
         setTimerEndTime(null);
         if (iosSettings.soundEffectsEnabled) NativeiOSBridge.playChime();
-        sendLocalRestNotification('IRON CORE · Отдых завершён!', 'Пора выходить на следующий подход 💪');
+        sendLocalRestNotification('IRON CORE · Отдых завершён!', 'Пора выходить на следующий подход');
         NativeiOSBridge.haptic('heavy', iosSettings.hapticsEnabled);
       }
     }, 400);
@@ -931,7 +928,7 @@ export default function App() {
       setTimerEndTime(end);
       setTimerSec(sec);
       setTimerRunning(true);
-      void scheduleBackgroundPush(sec, 'IRON CORE · Отдых завершён!', 'Пора выходить на следующий подход 💪');
+      void scheduleBackgroundPush(sec, 'IRON CORE · Отдых завершён!', 'Пора выходить на следующий подход');
       if (!isNativeApp && iosSettings.shortcutsIslandEnabled) {
         NativeiOSBridge.triggerShortcutsDynamicIslandTimer(sec, iosSettings.shortcutName);
       }
@@ -1685,40 +1682,6 @@ export default function App() {
 
   const targetKcal = nutritionLog.dayType === 'workout' ? 3000 : 2500;
 
-  const heroScheduleItems = useMemo<HeroScheduleItem[]>(() => {
-    const squat1RM = exercises.find((e) => e.id === 'squat')?.oneRepMax || 0;
-    const deadlift1RM = exercises.find((e) => e.id === 'deadlift')?.oneRepMax || 0;
-    const benchVal = exercises.find((e) => e.id === 'bench')?.oneRepMax || 0;
-    const remainKcal = Math.max(0, targetKcal - Math.round(nutritionTotals.kcal));
-    const remainProt = Math.max(0, Math.round((nutritionLog.bodyweight || 78) * 2.0) - Math.round(nutritionTotals.p));
-
-    return [
-      {
-        id: 'ic-lift-1pm',
-        day: isFreestyleMode ? 'Свободный зал' : `${activeProgram.title} · Нед ${weekObj.week}`,
-        title: `Ж ${benchVal || 0} · П ${squat1RM || 0} · Т ${deadlift1RM || 0} кг`,
-        timeOrMetric: `${completedSetsCount}/${flatDaySets.length}`,
-      },
-      {
-        id: 'ic-kcal-day',
-        day: 'КБЖУ сегодня',
-        title: `${Math.round(nutritionTotals.kcal)} / ${targetKcal} ккал · Б ${Math.round(nutritionTotals.p)}г`,
-        timeOrMetric: remainKcal > 0 ? `-${remainKcal} ккал · Б ${remainProt}г` : 'Цель ✓',
-      },
-    ];
-  }, [
-    exercises,
-    targetKcal,
-    nutritionTotals.kcal,
-    nutritionTotals.p,
-    nutritionLog.bodyweight,
-    isFreestyleMode,
-    activeProgram.title,
-    weekObj.week,
-    completedSetsCount,
-    flatDaySets.length,
-  ]);
-
   // Auto-persist daily workout session with muscle workload breakdown (IndexedDB v3 + optional Cloud)
   useEffect(() => {
     if (!isHydrated || completedSetsCount === 0) return;
@@ -1910,7 +1873,7 @@ export default function App() {
 
       // Background
       const bgGrad = ctx.createLinearGradient(0, 0, 1080, 1350);
-      if (visualTheme === 'oled') {
+      if (visualTheme === 'ios-dark') {
         bgGrad.addColorStop(0, '#000000');
         bgGrad.addColorStop(1, '#050810');
       } else {
@@ -1923,7 +1886,7 @@ export default function App() {
 
       // Subtle glow orb
       const presetObj = ACCENT_PRESETS.find((p) => p.id === accentPreset);
-      const accentHex = presetObj && accentPreset !== 'auto' ? presetObj.hex : '#38BDF8';
+      const accentHex = presetObj ? presetObj.hex : '#F4F4F5';
       const orb = ctx.createRadialGradient(880, 180, 20, 880, 180, 480);
       orb.addColorStop(0, `${accentHex}33`);
       orb.addColorStop(1, 'rgba(0,0,0,0)');
@@ -2155,10 +2118,7 @@ export default function App() {
 
   return (
     <div className="ic-app-shell min-h-screen relative transition-colors duration-300">
-      {/* ================= LIVING MIDNIGHT OBSIDIAN AURORA ================= */}
-      {visualTheme !== 'oled' && visualTheme !== 'ocean-glass' && (
-        <LivingAuroraBackdrop activeTab={activeTab} timerRunning={timerRunning} />
-      )}
+
 
       {/* ================= PWA SMART UPDATE PROMPT ================= */}
       <PwaUpdateBanner hapticsEnabled={iosSettings.hapticsEnabled} />
@@ -2478,74 +2438,6 @@ export default function App() {
         {/* ================= TAB 1: АКТИВНАЯ ПРОГРАММА (ZERO-SCROLL FOCUS) ================= */}
         {activeTab === 'workout' && (
           <div className="max-w-3xl mx-auto space-y-3 mt-1">
-            <div className="animate-cascade" style={{ animationDelay: '20ms' }}>
-              {isHeroCompact ? (
-                <div className="slate-card rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-2">
-                  <div className="min-w-0 flex items-center gap-2 text-xs">
-                    <span className="font-bold text-slate-50 truncate">IRON CORE</span>
-                    <span className="opacity-50">·</span>
-                    <span className="font-mono text-[11px] text-slate-200 truncate">
-                      {completedSetsCount}/{flatDaySets.length} подх. · {dayTonnage} кг · {Math.round(nutritionTotals.kcal)} ккал
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsHeroCompact(false)}
-                    className="px-2.5 py-1 rounded-lg bg-white/15 text-[11px] font-semibold text-white shrink-0 active:scale-95"
-                  >
-                    Сводка
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  <HeroShowcaseV2
-                    brandName="IRON CORE"
-                    headlineLine1="Твой личный центр"
-                    headlineLine2="силы и питания"
-                    description={
-                      nextPendingSet
-                        ? `Следующий подход: ${nextPendingSet.exerciseName}${
-                            nextPendingSet.weightKg ? ` · ${nextPendingSet.weightKg} кг × ${nextPendingSet.reps}` : ` · ${nextPendingSet.reps} повт.`
-                          }`
-                        : 'Все подходы на сегодня закрыты — можно перейти в 3D, камеру или кухню.'
-                    }
-                    primaryCtaLabel={nextPendingSet ? 'В фокус-режим' : 'План и дни'}
-                    secondaryCtaLabel="КБЖУ и кухня"
-                    scheduleTitle="Сводка дня"
-                    scheduleBadge={isFreestyleMode ? 'FREE' : `НЕД ${weekObj.week}`}
-                    scheduleItems={heroScheduleItems}
-                    features={[
-                      `${dayTonnage} кг тоннаж дня`,
-                      `${Math.round(nutritionTotals.kcal)} / ${targetKcal} ккал`,
-                      `${completedSetsCount} из ${flatDaySets.length} подходов`,
-                    ]}
-                    onStartWorkout={() => {
-                      if (nextPendingSet) {
-                        setIsGymFocusOpen(true);
-                      } else {
-                        setIsDaySelectorSheetOpen(true);
-                      }
-                    }}
-                    onOpenNutrition={() => setActiveTab('fridge')}
-                    onOpen3DOrCamera={() => setIsBarbellSheetOpen(true)}
-                    onNavigateTab={(tab) => {
-                      if (tab === 'workouts') setActiveTab('workout');
-                      if (tab === 'kitchen') setActiveTab('fridge');
-                      if (tab === '3d-camera') setIsBarbellSheetOpen(true);
-                    }}
-                  />
-                  <div className="flex justify-end px-1">
-                    <button
-                      type="button"
-                      onClick={() => setIsHeroCompact(true)}
-                      className="text-[11px] font-medium text-slate-300 hover:text-white transition-colors"
-                    >
-                      Свернуть баннер ↑
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
             {/* Collapsible Freestyle Builder */}
             {isFreestyleMode && isFreestyleBuilderOpen && (
               <div className="animate-cascade slate-card rounded-[24px] p-4 space-y-3">
@@ -2715,7 +2607,7 @@ export default function App() {
                       style={{
                         width: `${flatDaySets.length > 0 ? Math.round((completedSetsCount / flatDaySets.length) * 100) : 0}%`,
                       }}
-                      className="h-full rounded-full bg-gradient-to-r from-sky-400 via-cyan-300 to-emerald-400 shadow-[0_0_12px_rgba(56,189,248,0.65)] transition-all duration-500"
+                      className="h-full rounded-full bg-sky-400 transition-all duration-300"
                     />
                   </div>
                 </div>
@@ -4632,7 +4524,7 @@ export default function App() {
         isOpen={isSettingsSheetOpen}
         onClose={() => setIsSettingsSheetOpen(false)}
         onDragProgress={setSheetDragRatio}
-        title="Функции iPhone & WebGL 3D"
+        title="Настройки"
         subtitle={isNativeApp ? 'Режим: Native Capacitor + ActivityKit' : 'Режим: iOS PWA + Three.js WebGL'}
         hapticsEnabled={iosSettings.hapticsEnabled}
       >
@@ -4641,15 +4533,14 @@ export default function App() {
           <div className="p-3.5 rounded-2xl slate-well space-y-2.5">
             <div>
               <div className="font-semibold text-slate-50">Тема оформления</div>
-              <div className="text-[11px] text-slate-400 mt-0.5">Pure Black OLED экономит батарею на iPhone</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">Матовые палитры без свечения и лишних градиентов</div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-3 gap-1.5">
               {(
                 [
-                  { id: 'ocean-glass', label: 'Ocean Glass' },
-                  { id: 'obsidian', label: 'Obsidian' },
-                  { id: 'oled', label: 'Pure OLED' },
-                  { id: 'titanium', label: 'Titanium' },
+                  { id: 'graphite', label: 'Графит' },
+                  { id: 'ios-dark', label: 'iOS Dark' },
+                  { id: 'titanium', label: 'Титан' },
                 ] as { id: VisualTheme; label: string }[]
               ).map((th) => (
                 <button
@@ -4680,13 +4571,11 @@ export default function App() {
                       setAccentPreset(ap.id);
                     }}
                     title={ap.label}
-                    style={ap.id !== 'auto' ? { backgroundColor: ap.hex } : undefined}
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-mono font-bold transition-transform active:scale-90 ${
-                      ap.id === 'auto' ? 'bg-slate-800 text-slate-200 border border-slate-400/30' : ''
-                    } ${accentPreset === ap.id ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-950 scale-110' : 'opacity-75'}`}
-                  >
-                    {ap.id === 'auto' ? 'A' : ''}
-                  </button>
+                    style={{ backgroundColor: ap.hex }}
+                    className={`w-6 h-6 rounded-full transition-transform active:scale-90 ${
+                      accentPreset === ap.id ? 'ring-2 ring-white ring-offset-2 ring-offset-[#161619] scale-110' : 'opacity-70'
+                    }`}
+                  />
                 ))}
               </div>
             </div>

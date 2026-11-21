@@ -93,13 +93,13 @@ export const GymFocusModal: React.FC<GymFocusModalProps> = ({
       : 0;
 
   return (
-    <div className="fixed inset-0 z-[75] bg-[#03050A]/98 backdrop-blur-2xl flex flex-col justify-between p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))] overflow-y-auto">
+    <div className="fixed inset-0 z-[75] bg-[#0d0d0f] flex flex-col justify-between p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))] overflow-y-auto">
       {/* Top Bar */}
       <div className="flex items-center justify-between gap-3 max-w-xl w-full mx-auto">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-bold">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            GYM FOCUS MODE · {completedCount}/{totalCount}
+            <span className="w-2 h-2 rounded-full bg-emerald-400 " />
+            Режим зала · {completedCount}/{totalCount}
           </div>
           <div className="text-xs text-slate-400 truncate mt-0.5">
             {activeProgramTitle} · {dayTitle}
@@ -120,7 +120,7 @@ export const GymFocusModal: React.FC<GymFocusModalProps> = ({
       <div className="max-w-xl w-full mx-auto my-auto space-y-4 py-3">
         {/* Active Rest Timer Card */}
         {timerRunning && (
-          <div className="slate-card border-emerald-400/40 rounded-[26px] p-4 flex items-center justify-between gap-4">
+          <div className="slate-card border-emerald-400/40 rounded-2xl p-4 flex items-center justify-between gap-4">
             <div>
               <div className="text-[10px] font-mono uppercase tracking-widest text-emerald-300">Отдых между подходами</div>
               <div className="font-mono tabular text-3xl font-extrabold text-emerald-400 mt-0.5">
@@ -155,7 +155,7 @@ export const GymFocusModal: React.FC<GymFocusModalProps> = ({
                 compact
               />
             ) : (
-              <div className="slate-card rounded-[26px] p-5 text-center">
+              <div className="slate-card rounded-2xl p-5 text-center">
                 <div className="text-[11px] font-mono uppercase tracking-widest text-sky-300">Подсобное упражнение</div>
                 <div className="text-xl font-extrabold text-slate-50 mt-1">{nextPendingSet.exerciseName}</div>
                 <div className="font-mono tabular text-3xl font-extrabold text-sky-300 mt-2">
@@ -165,7 +165,7 @@ export const GymFocusModal: React.FC<GymFocusModalProps> = ({
             )}
 
             {/* Quick Reps & RPE / Difficulty Selector */}
-            <div className="slate-card rounded-[26px] p-4 space-y-3">
+            <div className="slate-card rounded-2xl p-4 space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs text-slate-400">Факт повторений:</span>
                 <div className="flex items-center gap-2">
@@ -196,9 +196,9 @@ export const GymFocusModal: React.FC<GymFocusModalProps> = ({
               <div className="grid grid-cols-3 gap-2">
                 {(
                   [
-                    { id: 'easy', label: 'Легко ⚡', sub: 'Есть запас' },
-                    { id: 'solid', label: 'По плану ✓', sub: 'Рабочий темп' },
-                    { id: 'hard', label: 'На грани 🔥', sub: 'Тяжело' },
+                    { id: 'easy', label: 'Легко', sub: 'Есть запас' },
+                    { id: 'solid', label: 'По плану', sub: 'Рабочий темп' },
+                    { id: 'hard', label: 'Тяжело', sub: 'Тяжело' },
                   ] as const
                 ).map((opt) => (
                   <button
@@ -243,15 +243,15 @@ export const GymFocusModal: React.FC<GymFocusModalProps> = ({
             {/* Giant Sweat-Proof Action Button */}
             <button
               onClick={handleBigComplete}
-              className="w-full py-5 rounded-[26px] bg-gradient-to-r from-emerald-400 to-sky-400 hover:from-emerald-300 hover:to-sky-300 text-slate-950 text-base font-extrabold tracking-tight shadow-2xl shadow-sky-400/25 active:scale-95 transition-transform"
+              className="w-full py-5 rounded-2xl bg-sky-400 text-slate-950 text-base font-extrabold tracking-tight  active:scale-95 transition-transform"
             >
               ЗАКРЫТЬ ПОДХОД #{nextPendingSet.setNumber} ({nextPendingSet.weightKg ? `${nextPendingSet.weightKg} кг × ` : ''}
               {targetReps}) ✓
             </button>
           </>
         ) : (
-          <div className="slate-card rounded-[28px] p-8 text-center space-y-3">
-            <div className="text-4xl">🏆</div>
+          <div className="slate-card rounded-2xl p-8 text-center space-y-3">
+            
             <div className="text-xl font-extrabold text-slate-50">Тренировка закрыта!</div>
             <div className="font-mono tabular text-sm text-emerald-300">
               Общий тоннаж: <AnimatedNumber value={dayTonnage} /> кг · {completedCount} подходов
@@ -278,7 +278,7 @@ export const GymFocusModal: React.FC<GymFocusModalProps> = ({
             onClick={() => startTimer(t.sec)}
             className="py-3 rounded-2xl slate-pill font-mono text-xs font-semibold text-slate-200 active:scale-95"
           >
-            ⏱ {t.label}
+            {t.label}
           </button>
         ))}
       </div>
