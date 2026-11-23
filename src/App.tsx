@@ -388,14 +388,15 @@ export default function App() {
     };
   }, []);
 
-  // Sync single unified accent across the entire app (no rainbow per-tab colors)
+  // Sync single unified accent across the entire app (default: Volt Lime)
   useEffect(() => {
-    const preset = ACCENT_PRESETS.find((p) => p.id === accentPreset) || ACCENT_PRESETS[0];
+    const preset = ACCENT_PRESETS.find((p) => p.id === accentPreset) || ACCENT_PRESETS[2];
     document.documentElement.style.setProperty('--accent-rgb', preset.rgb);
     document.documentElement.style.setProperty('--accent-hex', preset.hex);
     document.documentElement.style.setProperty('--ic-accent', preset.hex);
     document.documentElement.style.setProperty('--ic-accent-fg', preset.fg);
     document.documentElement.style.setProperty('--ic-accent-soft', `rgba(${preset.rgb}, 0.14)`);
+    document.documentElement.style.setProperty('--ic-accent-border', `rgba(${preset.rgb}, 0.34)`);
   }, [accentPreset]);
 
   useEffect(() => {
@@ -406,7 +407,7 @@ export default function App() {
           : 'graphite';
       localStorage.setItem('ironcore_visual_theme_v1', JSON.stringify(safeTheme));
       document.documentElement.setAttribute('data-theme', safeTheme);
-      const bg = safeTheme === 'ios-dark' ? '#000000' : safeTheme === 'titanium' ? '#09090b' : '#0d0d0f';
+      const bg = safeTheme === 'ios-dark' ? '#000000' : safeTheme === 'titanium' ? '#09090b' : '#0b0b0d';
       document.body.style.backgroundColor = bg;
       const meta = document.querySelector('meta[name="theme-color"]');
       if (meta) meta.setAttribute('content', bg);
@@ -2216,7 +2217,7 @@ export default function App() {
               ? 'transform 0.38s var(--spring-ios), filter 0.38s var(--spring-ios), border-radius 0.38s var(--spring-ios)'
               : 'none',
         }}
-        className="app-stage max-w-5xl mx-auto px-4 pt-[calc(4.1rem+env(safe-area-inset-top))] sm:pt-20 pb-48"
+        className="app-stage max-w-3xl mx-auto px-4 pt-[calc(4.4rem+env(safe-area-inset-top))] sm:pt-20 pb-48"
       >
         {storageBanner && (
           <div className="mb-3 px-3 py-1.5 rounded-xl slate-pill text-[11px] font-mono text-emerald-300 text-center animate-cascade">

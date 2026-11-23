@@ -24,7 +24,7 @@ describe('IRON CORE Math Engine', () => {
 
   it('computes e1RM (average of Epley and Brzycki)', () => {
     expect(calculateE1RM(100, 1)).toBe(100);
-    expect(calculateE1RM(85, 5)).toBe(98.3);
+    expect(calculateE1RM(85, 5)).toBe(97.4);
     expect(calculateE1RM(0, 5)).toBe(0);
   });
 
