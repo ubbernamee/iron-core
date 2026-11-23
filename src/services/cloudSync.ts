@@ -223,3 +223,95 @@ export function joinLiveGymRoom(
     },
   };
 }
+
+
+// ================= OFFLINE SYNC QUEUE FOR GYM BASEMENTS (iOS PWA) =================
+type QueuedCloudItem =
+  | { kind: 'workout'; data: WorkoutSessionRecord }
+  | { kind: 'nutrition'; data: NutritionDayRecord };
+
+const OFFLINE_QUEUE_KEY = 'ironcore_cloud_offline_queue_v1';
+
+function readOfflineQueue(): QueuedCloudItem[] {
+  try {
+    const raw = localStorage.getItem(OFFLINE_QUEUE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeOfflineQueue(items: QueuedCloudItem[]): void {
+  try {
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(items.slice(-40)));
+  } catch {}
+}
+
+export function enqueueOfflineCloudItem(item: QueuedCloudItem): void {
+  const queue = readOfflineQueue();
+  const deduped = queue.filter((q) => {
+    if (q.kind !== item.kind) return true;
+    if (q.kind === 'workout' && item.kind === 'workout') return q.data.id !== item.data.id;
+    if (q.kind === 'nutrition' && item.kind === 'nutrition') return q.data.date !== item.data.date;
+    return true;
+  });
+  deduped.push(item);
+  writeOfflineQueue(deduped);
+}
+
+export async function flushOfflineCloudQueue(): Promise<number> {
+  if (!isCloudConfigured() || (typeof navigator !== 'undefined' && !navigator.onLine)) return 0;
+  const queue = readOfflineQueue();
+  if (queue.length === 0) return 0;
+
+  const remaining: QueuedCloudItem[] = [];
+  let flushed = 0;
+
+  for (const item of queue) {
+    const res =
+      item.kind === 'workout'
+        ? await syncWorkoutSessionToCloud(item.data)
+        : await syncNutritionDayToCloud(item.data);
+    if (res.ok) flushed++;
+    else remaining.push(item);
+  }
+
+  writeOfflineQueue(remaining);
+  return flushed;
+}
+
+export async function syncWorkoutSessionReliable(session: WorkoutSessionRecord): Promise<void> {
+  if (!isCloudConfigured()) return;
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    enqueueOfflineCloudItem({ kind: 'workout', data: session });
+    return;
+  }
+  const res = await syncWorkoutSessionToCloud(session);
+  if (!res.ok) {
+    enqueueOfflineCloudItem({ kind: 'workout', data: session });
+  }
+}
+
+export async function syncNutritionDayReliable(day: NutritionDayRecord): Promise<void> {
+  if (!isCloudConfigured()) return;
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    enqueueOfflineCloudItem({ kind: 'nutrition', data: day });
+    return;
+  }
+  const res = await syncNutritionDayToCloud(day);
+  if (!res.ok) {
+    enqueueOfflineCloudItem({ kind: 'nutrition', data: day });
+  }
+}
+
+let offlineListenerBound = false;
+export function initOfflineCloudSync(): void {
+  if (typeof window === 'undefined' || offlineListenerBound) return;
+  offlineListenerBound = true;
+  window.addEventListener('online', () => {
+    void flushOfflineCloudQueue();
+  });
+  void flushOfflineCloudQueue();
+}

@@ -4,6 +4,7 @@ import { calculateE1RM, formatTime, roundToStep } from '../engine/math';
 import { AnimatedNumber } from './AnimatedNumber';
 import { BarbellWebGL3D } from './BarbellWebGL3D';
 import { PendingSetInfo } from './DynamicIslandBar';
+import { useRestTimer } from '../hooks/useRestTimerStore';
 
 interface GymFocusModalProps {
   isOpen: boolean;
@@ -14,9 +15,9 @@ interface GymFocusModalProps {
   completedCount: number;
   totalCount: number;
   dayTonnage: number;
-  timerSec: number;
-  timerTotal: number;
-  timerRunning: boolean;
+  timerSec?: number;
+  timerTotal?: number;
+  timerRunning?: boolean;
   startTimer: (sec: number) => void;
   stopTimer: () => void;
   onCompleteSetWithOutcome: (outcome: 'easy' | 'solid' | 'hard', actualReps?: number) => void;
@@ -35,9 +36,6 @@ export const GymFocusModal: React.FC<GymFocusModalProps> = ({
   completedCount,
   totalCount,
   dayTonnage,
-  timerSec,
-  timerTotal,
-  timerRunning,
   startTimer,
   stopTimer,
   onCompleteSetWithOutcome,
@@ -46,6 +44,7 @@ export const GymFocusModal: React.FC<GymFocusModalProps> = ({
   hapticsEnabled,
   soundEnabled,
 }) => {
+  const { timerSec, timerTotal, timerRunning } = useRestTimer();
   const [selectedOutcome, setSelectedOutcome] = useState<'easy' | 'solid' | 'hard'>('solid');
   const [customReps, setCustomReps] = useState<number | null>(null);
   const [coachingHint, setCoachingHint] = useState<string | null>(null);

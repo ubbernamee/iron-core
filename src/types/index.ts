@@ -201,4 +201,15 @@ export interface FullBackupPayload {
   iosSettings: IOSSettings;
   workoutSessions?: WorkoutSessionRecord[];
   nutritionDays?: NutritionDayRecord[];
+  dayOverrides?: Record<string, unknown>;
+  weightMemory?: Record<string, number>;
+  freestyleItems?: unknown[];
+  isFreestyleMode?: boolean;
+  userProfile?: unknown;
+  favoriteRecipes?: string[];
+  waterMl?: number;
+  supplementsDone?: Record<string, boolean>;
+  visualTheme?: string;
+  accentPreset?: string;
+  coopRoomCode?: string;
 }

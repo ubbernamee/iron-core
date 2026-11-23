@@ -1,6 +1,7 @@
 import React from 'react';
 import { NativeiOSBridge } from '../engine/iosBridge';
 import { formatTime } from '../engine/math';
+import { useRestTimer } from '../hooks/useRestTimerStore';
 
 export interface PendingSetInfo {
   setKey: string;
@@ -23,9 +24,9 @@ interface DynamicIslandBarProps {
   nextPendingSet: PendingSetInfo | null;
   completedCount: number;
   totalCount: number;
-  timerSec: number;
-  timerTotal: number;
-  timerRunning: boolean;
+  timerSec?: number;
+  timerTotal?: number;
+  timerRunning?: boolean;
   startTimer: (sec: number) => void;
   stopTimer: () => void;
   onCompleteNext: () => void;
@@ -43,9 +44,6 @@ export const DynamicIslandBar: React.FC<DynamicIslandBarProps> = ({
   nextPendingSet,
   completedCount,
   totalCount,
-  timerSec,
-  timerTotal,
-  timerRunning,
   startTimer,
   stopTimer,
   onCompleteNext,
@@ -55,6 +53,7 @@ export const DynamicIslandBar: React.FC<DynamicIslandBarProps> = ({
   shortcutsEnabled,
   hapticsEnabled,
 }) => {
+  const { timerSec, timerTotal, timerRunning } = useRestTimer();
   const progressPct =
     timerRunning && timerTotal > 0
       ? Math.max(0, (timerSec / timerTotal) * 100)

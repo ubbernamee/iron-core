@@ -2,6 +2,8 @@ import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useStat
 import { AnimatedNumber } from './components/AnimatedNumber';
 const BarbellWebGL3D = lazy(() => import('./components/BarbellWebGL3D').then((m) => ({ default: m.BarbellWebGL3D })));
 import { BottomSheet } from './components/BottomSheet';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { restTimerStore, useRestTimer } from './hooks/useRestTimerStore';
 import { DynamicIslandBar, PendingSetInfo } from './components/DynamicIslandBar';
 const FormCheckVision = lazy(() => import('./components/FormCheckVision').then((m) => ({ default: m.FormCheckVision })));
 const GymFocusModal = lazy(() => import('./components/GymFocusModal').then((m) => ({ default: m.GymFocusModal })));
@@ -48,8 +50,9 @@ import {
   LiveGymPeerState,
   pullBackupFromCloud,
   pushBackupToCloud,
-  syncNutritionDayToCloud,
-  syncWorkoutSessionToCloud,
+  initOfflineCloudSync,
+  syncNutritionDayReliable,
+  syncWorkoutSessionReliable,
 } from './services/cloudSync';
 import { enableBackgroundPush, scheduleBackgroundPush, sendLocalRestNotification } from './services/webPush';
 import { createVoiceCoach, isVoiceSupported, VoiceCoachController, VoiceCommand } from './services/voiceCoach';
@@ -283,6 +286,22 @@ function StreakHeatmap({ sessions }: { sessions: WorkoutSessionRecord[] }) {
   );
 }
 
+function RestTimerEdgeBar() {
+  const { timerSec, timerTotal, timerRunning } = useRestTimer();
+  if (!timerRunning || timerTotal <= 0) return null;
+  return (
+    <div className="absolute top-0 left-0 right-0 h-[2px] bg-white/[0.06] pointer-events-none">
+      <div
+        style={{
+          width: `${Math.max(0, Math.min(100, (timerSec / timerTotal) * 100))}%`,
+          backgroundColor: 'var(--ic-accent, #c8f550)',
+        }}
+        className="h-full transition-all duration-500 linear"
+      />
+    </div>
+  );
+}
+
 export default function App() {
   const isNativeApp = NativeiOSBridge.isNativeCapacitor();
   const [isHydrated, setIsHydrated] = useState(false);
@@ -370,7 +389,6 @@ export default function App() {
   const [workoutSessions, setWorkoutSessions] = useState<WorkoutSessionRecord[]>([]);
   const [isWorkoutSummaryOpen, setIsWorkoutSummaryOpen] = useState(false);
   const [isCookMode, setIsCookMode] = useState(false);
-  const preCueFiredRef = useRef<number | null>(null);
 
   // Shockwave set feedback + Day transition direction
   const [recentBurstSetKey, setRecentBurstSetKey] = useState<string | null>(null);
@@ -385,11 +403,9 @@ export default function App() {
   const [pdfImportStatus, setPdfImportStatus] = useState('');
   const pdfFileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Timer
+  // Timer metadata for session persistence (ticks live in isolated restTimerStore)
   const [timerEndTime, setTimerEndTime] = useState<number | null>(null);
-  const [timerSec, setTimerSec] = useState<number>(0);
   const [timerTotal, setTimerTotal] = useState<number>(180);
-  const [timerRunning, setTimerRunning] = useState<boolean>(false);
 
   // Voice Coach (Hands-Free)
   const [voiceActive, setVoiceActive] = useState(false);
@@ -529,13 +545,13 @@ export default function App() {
         if (s.activeTab) setActiveTab(s.activeTab);
         if (s.iosSettings) setIosSettings((prev) => ({ ...prev, ...s.iosSettings }));
 
+        initOfflineCloudSync();
         if (s.timerEndTime) {
           const rem = Math.max(0, Math.round((s.timerEndTime - Date.now()) / 1000));
           if (rem > 0) {
             setTimerEndTime(s.timerEndTime);
             setTimerTotal(s.timerTotal || 180);
-            setTimerSec(rem);
-            setTimerRunning(true);
+            restTimerStore.hydrate(s.timerEndTime, s.timerTotal || 180);
           }
         }
 
@@ -789,6 +805,17 @@ export default function App() {
       nutritionLog,
       shoppingList,
       iosSettings,
+      dayOverrides,
+      weightMemory,
+      freestyleItems,
+      isFreestyleMode,
+      userProfile,
+      favoriteRecipes,
+      waterMl,
+      supplementsDone,
+      visualTheme,
+      accentPreset,
+      coopRoomCode,
     }),
     [
       programs,
@@ -800,6 +827,17 @@ export default function App() {
       nutritionLog,
       shoppingList,
       iosSettings,
+      dayOverrides,
+      weightMemory,
+      freestyleItems,
+      isFreestyleMode,
+      userProfile,
+      favoriteRecipes,
+      waterMl,
+      supplementsDone,
+      visualTheme,
+      accentPreset,
+      coopRoomCode,
     ]
   );
 
@@ -1057,9 +1095,25 @@ export default function App() {
   const nextPendingSet = useMemo(() => flatDaySets.find((s) => !s.done) || null, [flatDaySets]);
   const completedSetsCount = useMemo(() => flatDaySets.filter((s) => s.done).length, [flatDaySets]);
 
+  // Configure isolated restTimerStore (no 400ms re-renders in App.tsx)
+  useEffect(() => {
+    restTimerStore.configure({
+      hapticsEnabled: iosSettings.hapticsEnabled,
+      soundEffectsEnabled: iosSettings.soundEffectsEnabled,
+      shortcutsIslandEnabled: iosSettings.shortcutsIslandEnabled,
+      shortcutName: iosSettings.shortcutName,
+      isNativeApp,
+      onPersist: (endTime, total) => {
+        setTimerEndTime(endTime);
+        setTimerTotal(total);
+      },
+    });
+  }, [isNativeApp, iosSettings]);
+
   useEffect(() => {
     if (!isNativeApp) return;
-    if (!nextPendingSet && !timerRunning) {
+    const isResting = Boolean(timerEndTime && timerEndTime > Date.now());
+    if (!nextPendingSet && !isResting) {
       void NativeiOSBridge.endLiveActivity();
       return;
     }
@@ -1070,54 +1124,18 @@ export default function App() {
       setNumber: nextPendingSet?.setNumber || completedSetsCount,
       completedSets: completedSetsCount,
       totalSets: flatDaySets.length,
-      timerEndTimestamp: timerRunning && timerEndTime ? Math.floor(timerEndTime / 1000) : 0,
-      isResting: timerRunning,
+      timerEndTimestamp: isResting && timerEndTime ? Math.floor(timerEndTime / 1000) : 0,
+      isResting,
     });
-  }, [isNativeApp, nextPendingSet, completedSetsCount, flatDaySets.length, timerRunning, timerEndTime]);
+  }, [isNativeApp, nextPendingSet, completedSetsCount, flatDaySets.length, timerEndTime]);
 
-  useEffect(() => {
-    if (!timerRunning || !timerEndTime) return;
-    const interval = setInterval(() => {
-      const left = Math.max(0, Math.round((timerEndTime - Date.now()) / 1000));
-      setTimerSec(left);
-      if (left > 0 && left <= 5 && preCueFiredRef.current !== timerEndTime) {
-        preCueFiredRef.current = timerEndTime;
-        NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
-        setTimeout(() => NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled), 150);
-      }
-      if (left <= 0) {
-        setTimerRunning(false);
-        setTimerEndTime(null);
-        if (iosSettings.soundEffectsEnabled) NativeiOSBridge.playChime();
-        sendLocalRestNotification('IRON CORE · Отдых завершён!', 'Пора выходить на следующий подход');
-        NativeiOSBridge.haptic('heavy', iosSettings.hapticsEnabled);
-      }
-    }, 400);
-    return () => clearInterval(interval);
-  }, [timerRunning, timerEndTime, iosSettings.hapticsEnabled, iosSettings.soundEffectsEnabled]);
-
-  const startTimer = useCallback(
-    (sec: number) => {
-      NativeiOSBridge.haptic('medium', iosSettings.hapticsEnabled);
-      const end = Date.now() + sec * 1000;
-      setTimerTotal(sec);
-      setTimerEndTime(end);
-      setTimerSec(sec);
-      setTimerRunning(true);
-      void scheduleBackgroundPush(sec, 'IRON CORE · Отдых завершён!', 'Пора выходить на следующий подход');
-      if (!isNativeApp && iosSettings.shortcutsIslandEnabled) {
-        NativeiOSBridge.triggerShortcutsDynamicIslandTimer(sec, iosSettings.shortcutName);
-      }
-    },
-    [isNativeApp, iosSettings]
-  );
+  const startTimer = useCallback((sec: number) => {
+    restTimerStore.start(sec);
+  }, []);
 
   const stopTimer = useCallback(() => {
-    NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
-    setTimerRunning(false);
-    setTimerEndTime(null);
-    setTimerSec(0);
-  }, [iosSettings.hapticsEnabled]);
+    restTimerStore.stop();
+  }, []);
 
   useEffect(() => {
     if (nextPendingSet && nextPendingSet.weightKg) {
@@ -1304,11 +1322,12 @@ export default function App() {
     }
 
     if (cmd.type === 'check_timer') {
-      if (!timerRunning || timerSec <= 0) {
+      const snap = restTimerStore.getSnapshot();
+      if (!snap.timerRunning || snap.timerSec <= 0) {
         speak('Таймер отдыха сейчас не запущен');
       } else {
-        const m = Math.floor(timerSec / 60);
-        const s = timerSec % 60;
+        const m = Math.floor(snap.timerSec / 60);
+        const s = snap.timerSec % 60;
         speak(`Осталось ${m > 0 ? `${m} мин ` : ''}${s} сек`);
       }
       return;
@@ -1928,7 +1947,7 @@ export default function App() {
         return [sessionRecord, ...filtered].sort((a, b) => b.date.localeCompare(a.date));
       });
       if (isCloudConfigured()) {
-        void syncWorkoutSessionToCloud(sessionRecord);
+        void syncWorkoutSessionReliable(sessionRecord);
       }
     }, 1200);
     return () => window.clearTimeout(timer);
@@ -1966,7 +1985,7 @@ export default function App() {
       };
       void saveNutritionDay(dayRecord);
       if (isCloudConfigured()) {
-        void syncNutritionDayToCloud(dayRecord);
+        void syncNutritionDayReliable(dayRecord);
       }
     }, 1200);
     return () => window.clearTimeout(timer);
@@ -2308,6 +2327,39 @@ export default function App() {
     if (data.nutritionLog) setNutritionLog(data.nutritionLog);
     if (data.shoppingList) setShoppingList(data.shoppingList);
     if (data.iosSettings) setIosSettings((prev) => ({ ...prev, ...data.iosSettings }));
+    if (data.dayOverrides && typeof data.dayOverrides === 'object') {
+      setDayOverrides(data.dayOverrides as Record<string, DayOverride>);
+    }
+    if (data.weightMemory && typeof data.weightMemory === 'object') {
+      setWeightMemory(data.weightMemory);
+    }
+    if (Array.isArray(data.freestyleItems)) {
+      setFreestyleItems(data.freestyleItems as ExtraWorkoutItem[]);
+    }
+    if (typeof data.isFreestyleMode === 'boolean') setIsFreestyleMode(data.isFreestyleMode);
+    if (data.userProfile && typeof data.userProfile === 'object') {
+      const prof = data.userProfile as UserProfile;
+      setUserProfile(prof);
+      if (prof.syncCode) setSyncCode(prof.syncCode);
+    }
+    if (Array.isArray(data.favoriteRecipes)) setFavoriteRecipes(data.favoriteRecipes);
+    if (typeof data.waterMl === 'number') setWaterMl(data.waterMl);
+    if (data.supplementsDone && typeof data.supplementsDone === 'object') {
+      setSupplementsDone(data.supplementsDone);
+    }
+    if (data.visualTheme === 'graphite' || data.visualTheme === 'ios-dark' || data.visualTheme === 'titanium') {
+      setVisualTheme(data.visualTheme);
+    }
+    if (
+      data.accentPreset === 'mono' ||
+      data.accentPreset === 'orange' ||
+      data.accentPreset === 'lime' ||
+      data.accentPreset === 'blue' ||
+      data.accentPreset === 'green'
+    ) {
+      setAccentPreset(data.accentPreset);
+    }
+    if (typeof data.coopRoomCode === 'string') setCoopRoomCode(data.coopRoomCode);
     setSnapshots(await listSafetySnapshots());
   };
 
@@ -2352,62 +2404,65 @@ export default function App() {
       {/* ================= PWA SMART UPDATE PROMPT ================= */}
       <PwaUpdateBanner hapticsEnabled={iosSettings.hapticsEnabled} />
 
-      {/* ================= FULL-SCREEN GYM FOCUS MODE (LAZY) ================= */}
+      {/* ================= FULL-SCREEN GYM FOCUS MODE (LAZY + ERROR BOUNDARY) ================= */}
       {isGymFocusOpen && (
-        <Suspense fallback={null}>
-          <GymFocusModal
-            isOpen={isGymFocusOpen}
-            onClose={() => setIsGymFocusOpen(false)}
-            activeProgramTitle={activeProgram.title}
-            dayTitle={dayObj.title}
-            nextPendingSet={nextPendingSet}
-            completedCount={completedSetsCount}
-            totalCount={flatDaySets.length}
-            dayTonnage={dayTonnage}
-            timerSec={timerSec}
-            timerTotal={timerTotal}
-            timerRunning={timerRunning}
-            startTimer={startTimer}
-            stopTimer={stopTimer}
-            onCompleteSetWithOutcome={handleCompleteSetWithOutcome}
-            onAdjustReadiness={(delta) => setReadinessShift((r) => Math.max(-10, Math.min(10, r + delta)))}
-            readinessShift={readinessShift}
-            hapticsEnabled={iosSettings.hapticsEnabled}
-            soundEnabled={iosSettings.soundEffectsEnabled}
-          />
-        </Suspense>
+        <ErrorBoundary moduleName="Режим зала">
+          <Suspense fallback={null}>
+            <GymFocusModal
+              isOpen={isGymFocusOpen}
+              onClose={() => setIsGymFocusOpen(false)}
+              activeProgramTitle={activeProgram.title}
+              dayTitle={dayObj.title}
+              nextPendingSet={nextPendingSet}
+              completedCount={completedSetsCount}
+              totalCount={flatDaySets.length}
+              dayTonnage={dayTonnage}
+              startTimer={startTimer}
+              stopTimer={stopTimer}
+              onCompleteSetWithOutcome={handleCompleteSetWithOutcome}
+              onAdjustReadiness={(delta) => setReadinessShift((r) => Math.max(-10, Math.min(10, r + delta)))}
+              readinessShift={readinessShift}
+              hapticsEnabled={iosSettings.hapticsEnabled}
+              soundEnabled={iosSettings.soundEffectsEnabled}
+            />
+          </Suspense>
+        </ErrorBoundary>
       )}
 
-      {/* ================= MEDIAPIPE GPU FORM CHECK (LAZY) ================= */}
+      {/* ================= MEDIAPIPE GPU FORM CHECK (LAZY + ERROR BOUNDARY) ================= */}
       {isFormCheckOpen && (
-        <Suspense fallback={null}>
-          <FormCheckVision
-            isOpen={isFormCheckOpen}
-            onClose={() => setIsFormCheckOpen(false)}
-            hapticsEnabled={iosSettings.hapticsEnabled}
-          />
-        </Suspense>
+        <ErrorBoundary moduleName="Анализ техники">
+          <Suspense fallback={null}>
+            <FormCheckVision
+              isOpen={isFormCheckOpen}
+              onClose={() => setIsFormCheckOpen(false)}
+              hapticsEnabled={iosSettings.hapticsEnabled}
+            />
+          </Suspense>
+        </ErrorBoundary>
       )}
 
-      {/* ================= HUD VIDEO TELEMETRY RECORDER (LAZY) ================= */}
+      {/* ================= HUD VIDEO TELEMETRY RECORDER (LAZY + ERROR BOUNDARY) ================= */}
       {Boolean(hudVideoTarget) && (
-        <Suspense fallback={null}>
-          <HudVideoRecorder
-            isOpen={Boolean(hudVideoTarget)}
-            onClose={() => setHudVideoTarget(null)}
-            target={
-              hudVideoTarget || {
-                exerciseName: 'IRON CORE',
-                weightKg: null,
-                reps: 1,
-                setNumber: 1,
-                effectivePct: 0,
-                programTitle: activeProgram.title,
+        <ErrorBoundary moduleName="HUD-видео">
+          <Suspense fallback={null}>
+            <HudVideoRecorder
+              isOpen={Boolean(hudVideoTarget)}
+              onClose={() => setHudVideoTarget(null)}
+              target={
+                hudVideoTarget || {
+                  exerciseName: 'IRON CORE',
+                  weightKg: null,
+                  reps: 1,
+                  setNumber: 1,
+                  effectivePct: 0,
+                  programTitle: activeProgram.title,
+                }
               }
-            }
-            hapticsEnabled={iosSettings.hapticsEnabled}
-          />
-        </Suspense>
+              hapticsEnabled={iosSettings.hapticsEnabled}
+            />
+          </Suspense>
+        </ErrorBoundary>
       )}
 
       {/* ================= DYNAMIC ISLAND BAR ================= */}
@@ -2418,9 +2473,6 @@ export default function App() {
         nextPendingSet={nextPendingSet}
         completedCount={completedSetsCount}
         totalCount={flatDaySets.length}
-        timerSec={timerSec}
-        timerTotal={timerTotal}
-        timerRunning={timerRunning}
         startTimer={startTimer}
         stopTimer={stopTimer}
         onCompleteNext={handleCompleteNextSet}
@@ -5360,21 +5412,23 @@ export default function App() {
       >
         <div className="mt-2">
           {activePlateTarget ? (
-            <Suspense
-              fallback={
-                <div className="p-8 text-center text-xs font-mono text-slate-400 slate-well rounded-2xl">
-                  Загрузка 3D WebGL-сцены...
-                </div>
-              }
-            >
-              <BarbellWebGL3D
-                targetWeight={activePlateTarget.weight}
-                barbellWeight={activePlateTarget.barbell}
-                title={activePlateTarget.title}
-                hapticsEnabled={iosSettings.hapticsEnabled}
-                soundEnabled={iosSettings.soundEffectsEnabled}
-              />
-            </Suspense>
+            <ErrorBoundary moduleName="3D-штанга" compact>
+              <Suspense
+                fallback={
+                  <div className="p-8 text-center text-xs font-mono text-slate-400 slate-well rounded-2xl">
+                    Загрузка 3D WebGL-сцены...
+                  </div>
+                }
+              >
+                <BarbellWebGL3D
+                  targetWeight={activePlateTarget.weight}
+                  barbellWeight={activePlateTarget.barbell}
+                  title={activePlateTarget.title}
+                  hapticsEnabled={iosSettings.hapticsEnabled}
+                  soundEnabled={iosSettings.soundEffectsEnabled}
+                />
+              </Suspense>
+            </ErrorBoundary>
           ) : (
             <div className="p-6 text-center text-xs text-slate-400 slate-well rounded-2xl">
               В сегодняшнем дне нет упражнений со штангой от 20 кг.
@@ -5900,17 +5954,7 @@ export default function App() {
             )}
 
             <div className="relative overflow-hidden ios-glass-card rounded-[22px] p-2.5 flex items-center justify-between gap-2">
-              {timerRunning && timerTotal > 0 && (
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-white/[0.06] pointer-events-none">
-                  <div
-                    style={{
-                      width: `${Math.max(0, Math.min(100, (timerSec / timerTotal) * 100))}%`,
-                      backgroundColor: 'var(--ic-accent, #c8f550)',
-                    }}
-                    className="h-full transition-all duration-500 linear"
-                  />
-                </div>
-              )}
+              <RestTimerEdgeBar />
               {nextPendingSet ? (
                 <>
                   <div className="pl-2 min-w-0 flex-1">
