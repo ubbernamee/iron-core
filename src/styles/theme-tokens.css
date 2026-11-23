@@ -1,44 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
 /* ==========================================================================
-   IRON CORE — Matte Carbon & Volt Lime Design System
-   Deep matte dark surfaces, crisp 1px top-light depth, single Volt Lime accent.
+   IRON CORE — Premium Matte Carbon & Volt Lime Design System (Whoop / Linear)
+   Anodized dark surfaces, subtle grain texture, 90/9/1 Volt Lime discipline,
+   de-cluttered border hierarchy, and sharp numeric rhythm.
    ========================================================================== */
 
 :root,
 [data-theme="graphite"] {
-  --ic-canvas: #0b0b0d;
-  --ic-surface: #0b0b0d;
-  --ic-bg-gradient: #0b0b0d;
+  --ic-canvas: #090a0c;
+  --ic-surface: #090a0c;
+  --ic-bg-gradient: #090a0c;
 
-  --ic-card-bg: #141518;
-  --ic-card-border: rgba(255, 255, 255, 0.08);
-  --ic-card-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --ic-card-bg: linear-gradient(180deg, #17181d 0%, #111216 100%);
+  --ic-card-solid: #141519;
+  --ic-card-border: rgba(255, 255, 255, 0.075);
+  --ic-card-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.065), 0 10px 30px rgba(0, 0, 0, 0.42);
 
-  --ic-well-bg: #1b1c21;
-  --ic-well-border: rgba(255, 255, 255, 0.065);
+  --ic-well-bg: rgba(255, 255, 255, 0.028);
+  --ic-well-border: rgba(255, 255, 255, 0.035);
 
-  --ic-pill-bg: #18191e;
-  --ic-pill-border: rgba(255, 255, 255, 0.09);
+  --ic-pill-bg: rgba(255, 255, 255, 0.04);
+  --ic-pill-border: rgba(255, 255, 255, 0.065);
 
-  --ic-sheet-bg: #141518;
-  --ic-sheet-border: rgba(255, 255, 255, 0.12);
-  --ic-sheet-shadow: 0 -16px 48px rgba(0, 0, 0, 0.78);
+  --ic-sheet-bg: #131418;
+  --ic-sheet-border: rgba(255, 255, 255, 0.11);
+  --ic-sheet-shadow: 0 -18px 54px rgba(0, 0, 0, 0.82);
 
-  --ic-bar-bg: rgba(16, 17, 20, 0.92);
-  --ic-bar-border: rgba(255, 255, 255, 0.09);
+  --ic-bar-bg: rgba(13, 14, 17, 0.88);
+  --ic-bar-border: rgba(255, 255, 255, 0.08);
 
-  --ic-ink: #f5f5f7;
+  --ic-ink: #f7f7f9;
   --ic-ink-soft: #d4d4d8;
-  --ic-ink-muted: #8e9099;
+  --ic-ink-muted: #848792;
 
   --accent-rgb: 200, 245, 80;
   --accent-hex: #c8f550;
   --ic-accent: #c8f550;
   --ic-accent-fg: #09090b;
-  --ic-accent-soft: rgba(200, 245, 80, 0.13);
+  --ic-accent-soft: rgba(200, 245, 80, 0.12);
   --ic-accent-border: rgba(200, 245, 80, 0.34);
 
-  --ic-status-done-bg: rgba(48, 209, 88, 0.14);
-  --ic-status-done-border: rgba(48, 209, 88, 0.4);
+  --ic-status-done-bg: rgba(48, 209, 88, 0.13);
+  --ic-status-done-border: rgba(48, 209, 88, 0.38);
   --ic-status-done-ink: #4ade80;
 }
 
@@ -46,56 +50,68 @@
   --ic-canvas: #000000;
   --ic-surface: #000000;
   --ic-bg-gradient: #000000;
-  --ic-card-bg: #161618;
-  --ic-card-border: rgba(255, 255, 255, 0.09);
-  --ic-well-bg: #222226;
-  --ic-well-border: rgba(255, 255, 255, 0.07);
-  --ic-pill-bg: #1c1c1f;
-  --ic-pill-border: rgba(255, 255, 255, 0.1);
-  --ic-sheet-bg: #161618;
-  --ic-bar-bg: rgba(12, 12, 14, 0.94);
+  --ic-card-bg: linear-gradient(180deg, #161619 0%, #101012 100%);
+  --ic-card-solid: #141416;
+  --ic-well-bg: rgba(255, 255, 255, 0.032);
+  --ic-sheet-bg: #141416;
+  --ic-bar-bg: rgba(10, 10, 12, 0.9);
 }
 
 [data-theme="titanium"] {
-  --ic-canvas: #09090b;
-  --ic-surface: #09090b;
-  --ic-bg-gradient: #09090b;
-  --ic-card-bg: #121216;
-  --ic-card-border: rgba(255, 255, 255, 0.08);
-  --ic-well-bg: #1a1a20;
-  --ic-well-border: rgba(255, 255, 255, 0.07);
-  --ic-pill-bg: #17171c;
-  --ic-pill-border: rgba(255, 255, 255, 0.09);
+  --ic-canvas: #08080a;
+  --ic-surface: #08080a;
+  --ic-bg-gradient: #08080a;
+  --ic-card-bg: linear-gradient(180deg, #141418 0%, #0e0e12 100%);
+  --ic-card-solid: #121216;
+  --ic-well-bg: rgba(255, 255, 255, 0.026);
   --ic-sheet-bg: #121216;
-  --ic-bar-bg: rgba(12, 12, 15, 0.94);
+  --ic-bar-bg: rgba(10, 10, 13, 0.9);
 }
 
-/* Global canvas */
+/* Global canvas & refined typography */
 html,
 body {
   background-color: var(--ic-surface) !important;
   color: var(--ic-ink) !important;
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace !important;
 }
 
 .ic-app-shell {
   position: relative;
   min-height: 100dvh;
-  background: var(--ic-surface) !important;
+  background: radial-gradient(100% 45% at 50% 0%, rgba(255, 255, 255, 0.028) 0%, transparent 100%), var(--ic-surface) !important;
   color: var(--ic-ink) !important;
   overflow-x: clip;
 }
 
-/* Keep matte dark surface clean without rainbow aurora orbs */
+/* Ultra-subtle anodized film grain (removes flat CSS plastic look) */
+.ic-app-shell::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.026;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Hide legacy rainbow aurora orbs */
 .ic-app-shell .aurora-canvas {
   display: none !important;
 }
 
-/* Generous bottom room so floating action bar never overlaps the last exercise */
+/* Main stage spacing */
 .ic-app-shell .app-stage {
   padding-bottom: calc(13.5rem + env(safe-area-inset-bottom)) !important;
 }
 
-/* Tactile matte cards with crisp 1px top highlight */
+/* ================= 1. ANODIZED MATTE CARDS (NO MATRYOSHKA BORDERS) ================= */
 .ic-app-shell .slate-card {
   background: var(--ic-card-bg) !important;
   border: 1px solid var(--ic-card-border) !important;
@@ -106,11 +122,11 @@ body {
 }
 
 .ic-app-shell .slate-card-active {
-  border-color: rgba(var(--accent-rgb), 0.34) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 28px rgba(0, 0, 0, 0.45) !important;
+  border-color: rgba(var(--accent-rgb), 0.3) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 12px 32px rgba(0, 0, 0, 0.5) !important;
 }
 
-/* Inner wells */
+/* Recessed inner wells — borderless/hairline so cards don't look boxed-in */
 .ic-app-shell .slate-well {
   background: var(--ic-well-bg) !important;
   border: 1px solid var(--ic-well-border) !important;
@@ -118,59 +134,117 @@ body {
   border-radius: 14px !important;
 }
 
-/* Toolbar pills */
+/* Clean hairline dividers between exercises */
+.ic-app-shell .divide-slate-400\/10 > :not([hidden]) ~ :not([hidden]),
+.ic-app-shell .border-slate-400\/10 {
+  border-color: rgba(255, 255, 255, 0.055) !important;
+}
+
+/* ================= 2. DE-CLUTTERED HEADER & 90/9/1 LIME DISCIPLINE ================= */
+.ic-app-shell header .slate-pill {
+  background: var(--ic-pill-bg) !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+  color: #a1a1aa !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: background-color 0.18s ease, color 0.18s ease !important;
+}
+
+.ic-app-shell header .slate-pill:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--ic-ink) !important;
+}
+
+/* Keep secondary header tool icons neutral silver (save Lime for primary actions) */
+.ic-app-shell header .slate-pill svg,
+.ic-app-shell header .text-sky-300,
+.ic-app-shell header .text-sky-200 {
+  color: #a1a1aa !important;
+}
+
+.ic-app-shell header .slate-card {
+  background: rgba(255, 255, 255, 0.035) !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  box-shadow: none !important;
+}
+
 .ic-app-shell .slate-pill {
   background: var(--ic-pill-bg) !important;
   border: 1px solid var(--ic-pill-border) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+  box-shadow: none !important;
   color: var(--ic-ink-soft) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 
-.ic-app-shell .slate-pill:hover {
-  background: #22232a !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
-  color: var(--ic-ink) !important;
-}
-
-/* Active exercise row highlight in Volt Lime */
+/* Active exercise row highlight: crisp Volt Lime left accent bar */
 .ic-app-shell .app-stage .ic-active-exercise {
-  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.08) 0%, rgba(var(--accent-rgb), 0.015) 65%, transparent 100%) !important;
-  box-shadow: inset 3.5px 0 0 0 var(--ic-accent), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.065) 0%, rgba(var(--accent-rgb), 0.01) 55%, transparent 100%) !important;
+  box-shadow: inset 3px 0 0 0 var(--ic-accent) !important;
   outline: none !important;
 }
 
-/* Top Dynamic Island fade & floating pill */
+/* ================= 3. SHARP NUMERIC RHYTHM (WORKING WEIGHTS) ================= */
+.ic-app-shell .app-stage .font-mono.tabular.text-2xl {
+  font-size: 1.85rem !important;
+  line-height: 1.05 !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.035em !important;
+  color: #ffffff !important;
+}
+
+.ic-app-shell .app-stage .ic-active-exercise .font-mono.tabular.text-2xl {
+  color: var(--ic-accent) !important;
+}
+
+.ic-app-shell .app-stage .font-mono.tabular.text-xl {
+  font-size: 1.35rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.025em !important;
+}
+
+/* Subtle 3D pill inside exercise block */
+.ic-app-shell .app-stage .bg-white\/\[0\.05\] {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.07) !important;
+  color: #9ca3af !important;
+}
+
+.ic-app-shell .app-stage .bg-white\/\[0\.05\] svg {
+  color: #9ca3af !important;
+}
+
+/* ================= 4. DYNAMIC ISLAND & FLOATING ACTION BAR ================= */
 .ic-app-shell .top-fade-cap {
-  background: linear-gradient(180deg, var(--ic-surface) 0%, rgba(11, 11, 13, 0.72) 60%, rgba(11, 11, 13, 0) 100%) !important;
+  background: linear-gradient(180deg, var(--ic-surface) 0%, rgba(9, 10, 12, 0.72) 60%, rgba(9, 10, 12, 0) 100%) !important;
 }
 
 .ic-app-shell .island-pill {
-  background: #16171b !important;
-  border: 1px solid rgba(255, 255, 255, 0.11) !important;
+  background: rgba(20, 21, 26, 0.92) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   color: var(--ic-ink) !important;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
-  backdrop-filter: blur(18px) !important;
-  -webkit-backdrop-filter: blur(18px) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
 }
 
 .ic-app-shell .island-pill.island-urgent {
   border-color: rgba(74, 222, 128, 0.55) !important;
-  box-shadow: 0 10px 30px rgba(34, 197, 94, 0.25) !important;
+  box-shadow: 0 12px 32px rgba(34, 197, 94, 0.25) !important;
 }
 
 /* Floating bottom action bar («Следующий подход» + «Фокус» + «Подход ✓») */
 .ic-app-shell .ios-glass-card {
-  background: rgba(20, 21, 25, 0.92) !important;
-  border: 1px solid rgba(var(--accent-rgb), 0.24) !important;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border-radius: 20px !important;
+  background: rgba(18, 19, 24, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.76), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(24px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
+  border-radius: 22px !important;
 }
 
-/* Unified Volt Lime primary buttons across all tabs */
+/* Primary Volt Lime CTA buttons */
 .ic-app-shell .bg-sky-400,
 .ic-app-shell .bg-amber-400,
 .ic-app-shell .bg-teal-400,
@@ -179,7 +253,7 @@ body {
 .ic-app-shell .bg-lime-400 {
   background: var(--ic-accent) !important;
   color: var(--ic-accent-fg) !important;
-  box-shadow: 0 4px 14px rgba(var(--accent-rgb), 0.22) !important;
+  box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.24) !important;
 }
 
 .ic-app-shell .bg-sky-400 *,
@@ -191,12 +265,12 @@ body {
 }
 
 .ic-app-shell button:disabled.disabled\:bg-slate-900 {
-  background: #1f2026 !important;
-  color: #5c5e66 !important;
+  background: #1c1d22 !important;
+  color: #555760 !important;
   box-shadow: none !important;
 }
 
-/* Unified Volt Lime accent typography */
+/* Accent typography inside content */
 .ic-app-shell .text-sky-300,
 .ic-app-shell .text-sky-200,
 .ic-app-shell .text-amber-300,
@@ -236,7 +310,7 @@ body {
   color: var(--ic-status-done-ink) !important;
 }
 
-/* Neutralize dark slate utility classes to cohesive matte carbon */
+/* Cohesive matte carbon utility overrides */
 .ic-app-shell .bg-slate-950,
 .ic-app-shell .bg-slate-950\/90,
 .ic-app-shell .bg-slate-950\/85,
@@ -252,11 +326,11 @@ body {
 .ic-app-shell .bg-slate-900\/90,
 .ic-app-shell .bg-slate-900\/80,
 .ic-app-shell .bg-slate-900\/70 {
-  background-color: var(--ic-well-bg) !important;
+  background-color: #1b1c22 !important;
 }
 
 .ic-app-shell .bg-slate-800 {
-  background-color: #272830 !important;
+  background-color: #25262e !important;
 }
 
 .ic-app-shell .text-slate-400,
@@ -264,17 +338,18 @@ body {
   color: var(--ic-ink-muted) !important;
 }
 
-/* Crisp set buttons optimized for thumb tapping */
+/* ================= 5. TACTILE SET BUTTONS & BOTTOM TAB BAR ================= */
 .ic-app-shell .liquid-set-btn {
-  background: #141519 !important;
-  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   color: var(--ic-ink-soft) !important;
   border-radius: 12px !important;
 }
 
 .ic-app-shell .liquid-set-btn:hover {
-  border-color: rgba(255, 255, 255, 0.18) !important;
-  color: var(--ic-ink) !important;
+  background: rgba(255, 255, 255, 0.065) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  color: #ffffff !important;
 }
 
 .ic-app-shell .liquid-set-btn::before {
@@ -286,7 +361,7 @@ body {
   background: var(--ic-accent-soft) !important;
   border: 1.5px solid var(--ic-accent) !important;
   color: var(--ic-accent) !important;
-  box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.15) !important;
+  box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.12) !important;
 }
 
 .ic-app-shell .liquid-set-btn.is-done {
@@ -306,13 +381,13 @@ body {
 nav.ios-blur-bar {
   background: var(--ic-bar-bg) !important;
   border-top: 1px solid var(--ic-bar-border) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(24px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
 }
 
 nav.ios-blur-bar .magnetic-pill > div {
   background: var(--ic-accent-soft) !important;
-  border: 1px solid rgba(var(--accent-rgb), 0.28) !important;
+  border: 1px solid rgba(var(--accent-rgb), 0.24) !important;
   border-radius: 14px !important;
   box-shadow: none !important;
 }
