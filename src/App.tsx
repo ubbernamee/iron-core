@@ -117,7 +117,171 @@ import {
   ShoppingItem,
   TabId,
   TrainingProgram,
+  WorkoutSessionRecord,
 } from './types';
+
+function Sparkline1RM({
+  history,
+  currentWeight,
+  id,
+}: {
+  history?: { date: string; weight: number }[];
+  currentWeight: number;
+  id: string;
+}) {
+  const pts = (history && history.length > 0 ? history : [{ date: '', weight: currentWeight }]).slice(-12);
+  const weights = pts.map((p) => p.weight);
+  const first = weights[0] ?? currentWeight;
+  const last = weights[weights.length - 1] ?? currentWeight;
+  const delta = Number((last - first).toFixed(1));
+  const minW = Math.min(...weights);
+  const maxW = Math.max(...weights);
+  const span = Math.max(1, maxW - minW);
+
+  const width = 220;
+  const height = 34;
+  const padX = 4;
+  const padY = 5;
+
+  const coords =
+    pts.length === 1
+      ? [
+          { x: padX, y: height / 2 },
+          { x: width - padX, y: height / 2 },
+        ]
+      : pts.map((p, idx) => {
+          const x = padX + (idx / (pts.length - 1)) * (width - padX * 2);
+          const y = height - padY - ((p.weight - minW) / span) * (height - padY * 2);
+          return { x, y };
+        });
+
+  const linePoints = coords.map((c) => `${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ');
+  const areaPath = `M ${coords[0].x.toFixed(1)} ${height} L ${coords
+    .map((c) => `${c.x.toFixed(1)} ${c.y.toFixed(1)}`)
+    .join(' L ')} L ${coords[coords.length - 1].x.toFixed(1)} ${height} Z`;
+  const lastPt = coords[coords.length - 1];
+  const gradId = `spark-grad-${id}`;
+
+  return (
+    <div className="mt-2.5 pt-2.5 border-t border-white/[0.045] flex items-center justify-between gap-3">
+      <div className="flex-1 min-w-0">
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-8 overflow-visible" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--ic-accent, #c8f550)" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="var(--ic-accent, #c8f550)" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={areaPath} fill={`url(#${gradId})`} />
+          <polyline
+            fill="none"
+            stroke="var(--ic-accent, #c8f550)"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            points={linePoints}
+          />
+          <circle cx={lastPt.x} cy={lastPt.y} r="3" fill="var(--ic-accent, #c8f550)" />
+        </svg>
+      </div>
+      <div className="text-right shrink-0">
+        <div
+          className={`font-mono tabular text-[11px] font-bold ${
+            delta > 0 ? 'text-sky-300' : delta < 0 ? 'text-rose-300' : 'text-slate-400'
+          }`}
+        >
+          {pts.length > 1 ? `${delta > 0 ? '+' : ''}${delta} кг` : 'База'}
+        </div>
+        <div className="font-mono text-[9px] text-slate-500">
+          {pts.length > 1 ? `${pts.length} зам.` : '1 запись'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StreakHeatmap({ sessions }: { sessions: WorkoutSessionRecord[] }) {
+  const daysCount = 84; // 12 weeks
+  const today = new Date();
+  const byDate = new Map<string, number>();
+  for (const s of sessions) {
+    if (!s.date) continue;
+    const prev = byDate.get(s.date) || 0;
+    const score = s.tonnageKg > 0 ? s.tonnageKg : s.completedSets * 100;
+    byDate.set(s.date, prev + score);
+  }
+
+  const maxScore = Math.max(1, ...Array.from(byDate.values()));
+  const cells: { key: string; level: 0 | 1 | 2 | 3 | 4; score: number }[] = [];
+  for (let i = daysCount - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const score = byDate.get(key) || 0;
+    let level: 0 | 1 | 2 | 3 | 4 = 0;
+    if (score > 0) {
+      const ratio = score / maxScore;
+      if (ratio >= 0.75) level = 4;
+      else if (ratio >= 0.45) level = 3;
+      else if (ratio >= 0.2) level = 2;
+      else level = 1;
+    }
+    cells.push({ key, level, score });
+  }
+
+  // Count active weeks streak & total sessions in 12w
+  const activeDaysCount = cells.filter((c) => c.level > 0).length;
+  let currentStreakWeeks = 0;
+  for (let w = 11; w >= 0; w--) {
+    const weekSlice = cells.slice(w * 7, w * 7 + 7);
+    if (weekSlice.some((c) => c.level > 0)) currentStreakWeeks++;
+    else if (w < 11) break;
+  }
+
+  const levelStyles: Record<0 | 1 | 2 | 3 | 4, string> = {
+    0: 'rgba(255, 255, 255, 0.045)',
+    1: 'rgba(200, 245, 80, 0.24)',
+    2: 'rgba(200, 245, 80, 0.48)',
+    3: 'rgba(200, 245, 80, 0.74)',
+    4: '#c8f550',
+  };
+
+  return (
+    <div className="mt-4 pt-4 border-t border-slate-400/10 space-y-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <div className="text-xs font-semibold text-slate-100">Активность за 12 недель</div>
+          <div className="font-mono text-[10px] text-slate-400 mt-0.5">
+            Тренировок: <span className="text-slate-200 font-bold">{activeDaysCount}</span> · Серия:{' '}
+            <span className="text-sky-300 font-bold">{currentStreakWeeks} нед.</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 text-[9px] font-mono text-slate-500">
+          <span>Меньше</span>
+          {([0, 1, 2, 3, 4] as const).map((lv) => (
+            <span
+              key={lv}
+              style={{ backgroundColor: levelStyles[lv] }}
+              className="w-2.5 h-2.5 rounded-[3px] inline-block"
+            />
+          ))}
+          <span>Больше</span>
+        </div>
+      </div>
+
+      <div className="grid grid-flow-col grid-rows-7 gap-1 overflow-x-auto no-scrollbar py-0.5">
+        {cells.map((c) => (
+          <div
+            key={c.key}
+            title={`${c.key}${c.score > 0 ? ` · ${Math.round(c.score)} ед.` : ' · Отдых'}`}
+            style={{ backgroundColor: levelStyles[c.level] }}
+            className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-[4px] transition-colors"
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   const isNativeApp = NativeiOSBridge.isNativeCapacitor();
@@ -203,6 +367,10 @@ export default function App() {
   const [programsSheetMode, setProgramsSheetMode] = useState<'list' | 'add'>('list');
   const [sheetDragRatio, setSheetDragRatio] = useState(1);
   const [snapshots, setSnapshots] = useState<SnapshotRecord[]>([]);
+  const [workoutSessions, setWorkoutSessions] = useState<WorkoutSessionRecord[]>([]);
+  const [isWorkoutSummaryOpen, setIsWorkoutSummaryOpen] = useState(false);
+  const [isCookMode, setIsCookMode] = useState(false);
+  const preCueFiredRef = useRef<number | null>(null);
 
   // Shockwave set feedback + Day transition direction
   const [recentBurstSetKey, setRecentBurstSetKey] = useState<string | null>(null);
@@ -348,6 +516,7 @@ export default function App() {
         setCompletedSets(data.completedSets);
         setMealTemplates(data.mealTemplates);
         setNutritionLog(data.nutritionLog);
+        if (Array.isArray(data.workoutSessions)) setWorkoutSessions(data.workoutSessions);
 
         const s = data.session;
         if (s.activeProgramId) setActiveProgramId(s.activeProgramId);
@@ -530,7 +699,7 @@ export default function App() {
     iosSettings,
   ]);
 
-  const isAnySheetOpen = isProgramsSheetOpen || Boolean(activeRecipeSheet) || isFilterSheetOpen || isSettingsSheetOpen || isCloudSheetOpen || isBarbellSheetOpen || isDaySelectorSheetOpen || Boolean(confirmDialog) || Boolean(promptDialog) || isProfileSheetOpen || isQuickAddMealOpen || isAddRecipeSheetOpen;
+  const isAnySheetOpen = isProgramsSheetOpen || Boolean(activeRecipeSheet) || isFilterSheetOpen || isSettingsSheetOpen || isCloudSheetOpen || isBarbellSheetOpen || isDaySelectorSheetOpen || Boolean(confirmDialog) || Boolean(promptDialog) || isProfileSheetOpen || isQuickAddMealOpen || isAddRecipeSheetOpen || isWorkoutSummaryOpen;
 
   useEffect(() => {
     if (isAnySheetOpen) setSheetDragRatio(0);
@@ -684,9 +853,10 @@ export default function App() {
   };
 
   useEffect(() => {
-    void NativeiOSBridge.setKeepAwake(iosSettings.wakeLockEnabled);
+    const shouldKeepAwake = iosSettings.wakeLockEnabled || isCookMode;
+    void NativeiOSBridge.setKeepAwake(shouldKeepAwake);
     const onVisibility = () => {
-      if (document.visibilityState === 'visible' && iosSettings.wakeLockEnabled) {
+      if (document.visibilityState === 'visible' && shouldKeepAwake) {
         void NativeiOSBridge.setKeepAwake(true);
       }
     };
@@ -695,7 +865,7 @@ export default function App() {
       document.removeEventListener('visibilitychange', onVisibility);
       void NativeiOSBridge.setKeepAwake(false);
     };
-  }, [iosSettings.wakeLockEnabled]);
+  }, [iosSettings.wakeLockEnabled, isCookMode]);
 
   const weekObj = useMemo(
     () => activeProgram.weeks.find((w) => w.week === selectedWeek) || activeProgram.weeks[0],
@@ -910,6 +1080,11 @@ export default function App() {
     const interval = setInterval(() => {
       const left = Math.max(0, Math.round((timerEndTime - Date.now()) / 1000));
       setTimerSec(left);
+      if (left > 0 && left <= 5 && preCueFiredRef.current !== timerEndTime) {
+        preCueFiredRef.current = timerEndTime;
+        NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
+        setTimeout(() => NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled), 150);
+      }
       if (left <= 0) {
         setTimerRunning(false);
         setTimerEndTime(null);
@@ -972,6 +1147,7 @@ export default function App() {
     setTimeout(() => setRecentBurstSetKey((prev) => (prev === key ? null : prev)), 600);
     if (willCompleteAll) {
       spawnCelebrationBurst();
+      setTimeout(() => setIsWorkoutSummaryOpen(true), 650);
     }
   };
 
@@ -1488,6 +1664,38 @@ export default function App() {
     return Math.round(sum);
   }, [flatDaySets]);
 
+  const prevSessionTonnage = useMemo(() => {
+    const today = getTodayDateKey();
+    const prev = workoutSessions.find((s) => s.date !== today && s.tonnageKg > 0);
+    return prev ? prev.tonnageKg : null;
+  }, [workoutSessions]);
+
+  const tonnageDelta = useMemo(() => {
+    if (!prevSessionTonnage || dayTonnage <= 0) return null;
+    const diff = dayTonnage - prevSessionTonnage;
+    const pct = Math.round((diff / prevSessionTonnage) * 100);
+    return { diff, pct };
+  }, [dayTonnage, prevSessionTonnage]);
+
+  const sessionPrHit = useMemo(() => {
+    for (const item of computedDayItems) {
+      if (!item.isBase || !item.oneRepMax) continue;
+      for (const b of item.computedBlocks) {
+        if (!b.weightKg || b.weightKg <= 0) continue;
+        const anyDone = Array.from({ length: b.sets }).some((_, sIdx) =>
+          Boolean(completedSets[`${b.blockKey}-s${sIdx}`])
+        );
+        if (anyDone) {
+          const est = calculateE1RM(b.weightKg, b.reps);
+          if (est > item.oneRepMax + 0.5) {
+            return { name: item.name, est1RM: est, prev1RM: item.oneRepMax };
+          }
+        }
+      }
+    }
+    return null;
+  }, [computedDayItems, completedSets]);
+
   const toggleFavoriteRecipe = (id: string) => {
     NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
     setFavoriteRecipes((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -1715,6 +1923,10 @@ export default function App() {
         updatedAt: new Date().toISOString(),
       };
       void saveWorkoutSession(sessionRecord);
+      setWorkoutSessions((prev) => {
+        const filtered = prev.filter((x) => x.id !== sessionRecord.id);
+        return [sessionRecord, ...filtered].sort((a, b) => b.date.localeCompare(a.date));
+      });
       if (isCloudConfigured()) {
         void syncWorkoutSessionToCloud(sessionRecord);
       }
@@ -1872,51 +2084,50 @@ export default function App() {
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('no-ctx');
 
-      // Background
-      const bgGrad = ctx.createLinearGradient(0, 0, 1080, 1350);
-      if (visualTheme === 'ios-dark') {
-        bgGrad.addColorStop(0, '#000000');
-        bgGrad.addColorStop(1, '#050810');
-      } else {
-        bgGrad.addColorStop(0, '#020617');
-        bgGrad.addColorStop(0.55, '#0B1325');
-        bgGrad.addColorStop(1, '#020617');
-      }
-      ctx.fillStyle = bgGrad;
+      // Matte Carbon Background (Whoop / Linear aesthetic)
+      const baseBg = visualTheme === 'ios-dark' ? '#000000' : '#090a0c';
+      ctx.fillStyle = baseBg;
       ctx.fillRect(0, 0, 1080, 1350);
 
-      // Subtle glow orb
+      // Subtle top anodized light sheen
+      const topSheen = ctx.createRadialGradient(540, 0, 40, 540, 0, 760);
+      topSheen.addColorStop(0, 'rgba(255, 255, 255, 0.045)');
+      topSheen.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = topSheen;
+      ctx.fillRect(0, 0, 1080, 1350);
+
       const presetObj = ACCENT_PRESETS.find((p) => p.id === accentPreset);
       const accentHex = presetObj ? presetObj.hex : '#C8F550';
-      const orb = ctx.createRadialGradient(880, 180, 20, 880, 180, 480);
-      orb.addColorStop(0, `${accentHex}33`);
-      orb.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = orb;
-      ctx.fillRect(0, 0, 1080, 1350);
 
-      // Outer border
-      ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
-      ctx.lineWidth = 3;
+      // Crisp 1.5px hairline frame
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(42, 42, 996, 1266, 44);
+      ctx.roundRect(44, 44, 992, 1262, 36);
       ctx.stroke();
 
-      // Header
+      // Top Volt Lime accent pill indicator
       ctx.fillStyle = accentHex;
-      ctx.font = 'bold 28px ui-monospace, SFMono-Regular, Menlo, monospace';
-      ctx.fillText('IRON CORE // WORKOUT SUMMARY', 90, 128);
+      ctx.beginPath();
+      ctx.roundRect(90, 98, 14, 28, 4);
+      ctx.fill();
 
-      ctx.fillStyle = 'rgba(148, 163, 184, 0.85)';
-      ctx.font = '24px ui-monospace, SFMono-Regular, Menlo, monospace';
+      // Header
+      ctx.fillStyle = '#F7F7F9';
+      ctx.font = '800 26px "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
+      ctx.fillText('IRON CORE', 118, 122);
+
+      ctx.fillStyle = '#848792';
+      ctx.font = '600 22px "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
       ctx.textAlign = 'right';
-      ctx.fillText(new Date().toLocaleDateString('ru-RU'), 990, 128);
+      ctx.fillText(new Date().toLocaleDateString('ru-RU'), 990, 122);
       ctx.textAlign = 'left';
 
       // Program & Day Title
-      ctx.fillStyle = '#F8FAFC';
-      ctx.font = 'bold 46px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '800 44px "Plus Jakarta Sans", system-ui, -apple-system, sans-serif';
       const shortTitle = titleText.length > 34 ? `${titleText.slice(0, 34)}…` : titleText;
-      ctx.fillText(shortTitle, 90, 205);
+      ctx.fillText(shortTitle, 90, 196);
 
       // Stats Cards Row
       const topSet = flatDaySets
@@ -1925,97 +2136,114 @@ export default function App() {
       const pctDone = flatDaySets.length > 0 ? Math.round((completedSetsCount / flatDaySets.length) * 100) : 0;
 
       const drawStatBox = (x: number, y: number, w: number, h: number, label: string, val: string, color: string) => {
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+        const cardGrad = ctx.createLinearGradient(x, y, x, y + h);
+        cardGrad.addColorStop(0, '#17181d');
+        cardGrad.addColorStop(1, '#111216');
+        ctx.fillStyle = cardGrad;
         ctx.beginPath();
-        ctx.roundRect(x, y, w, h, 28);
+        ctx.roundRect(x, y, w, h, 24);
         ctx.fill();
-        ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.075)';
+        ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        ctx.fillStyle = 'rgba(148, 163, 184, 0.9)';
-        ctx.font = 'bold 20px ui-monospace, SFMono-Regular, Menlo, monospace';
-        ctx.fillText(label, x + 28, y + 48);
+        ctx.fillStyle = '#848792';
+        ctx.font = '700 18px "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.fillText(label, x + 28, y + 46);
 
         ctx.fillStyle = color;
-        ctx.font = 'bold 46px ui-monospace, SFMono-Regular, Menlo, monospace';
-        ctx.fillText(val, x + 28, y + 112);
+        ctx.font = '800 46px "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.fillText(val, x + 28, y + 110);
       };
 
-      drawStatBox(90, 250, 435, 148, 'ТОННАЖ ДНЯ', `${dayTonnage} КГ`, '#F8FAFC');
-      drawStatBox(555, 250, 435, 148, 'ВЫПОЛНЕНО', `${completedSetsCount}/${flatDaySets.length} (${pctDone}%)`, accentHex);
+      drawStatBox(90, 240, 438, 146, 'ТОННАЖ ДНЯ', `${dayTonnage} КГ`, '#FFFFFF');
+      drawStatBox(552, 240, 438, 146, 'ВЫПОЛНЕНО', `${completedSetsCount}/${flatDaySets.length} (${pctDone}%)`, accentHex);
 
-      // Progress bar
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+      // Razor-thin progress bar
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
       ctx.beginPath();
-      ctx.roundRect(90, 426, 900, 18, 9);
+      ctx.roundRect(90, 412, 900, 8, 4);
       ctx.fill();
       ctx.fillStyle = accentHex;
       ctx.beginPath();
-      ctx.roundRect(90, 426, Math.max(18, (900 * pctDone) / 100), 18, 9);
+      ctx.roundRect(90, 412, Math.max(8, (900 * pctDone) / 100), 8, 4);
       ctx.fill();
 
       // Top Set Highlight
       if (topSet && topSet.weightKg) {
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
+        ctx.fillStyle = '#141519';
         ctx.beginPath();
-        ctx.roundRect(90, 474, 900, 96, 24);
+        ctx.roundRect(90, 448, 900, 96, 20);
         ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
         ctx.fillStyle = accentHex;
         ctx.beginPath();
-        ctx.roundRect(90, 474, 10, 96, 5);
+        ctx.roundRect(90, 448, 6, 96, 3);
         ctx.fill();
-        ctx.fillStyle = 'rgba(148, 163, 184, 0.9)';
-        ctx.font = 'bold 20px ui-monospace, SFMono-Regular, Menlo, monospace';
-        ctx.fillText('ТОП-ПОДХОД', 124, 512);
-        ctx.fillStyle = '#F8FAFC';
-        ctx.font = 'bold 30px system-ui, -apple-system, sans-serif';
+
+        ctx.fillStyle = '#848792';
+        ctx.font = '700 18px "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.fillText('ТОП-ПОДХОД', 120, 486);
+
+        ctx.fillStyle = '#F7F7F9';
+        ctx.font = '700 28px "Plus Jakarta Sans", system-ui, -apple-system, sans-serif';
         ctx.fillText(
-          `${topSet.exerciseName.slice(0, 26)} · ${topSet.weightKg} кг × ${topSet.reps}`,
-          124,
-          550
+          `${topSet.exerciseName.slice(0, 28)} · ${topSet.weightKg} кг × ${topSet.reps}`,
+          120,
+          524
         );
       }
 
       // Exercise List
-      let curY = topSet && topSet.weightKg ? 625 : 515;
-      ctx.fillStyle = 'rgba(148, 163, 184, 0.85)';
-      ctx.font = 'bold 22px ui-monospace, SFMono-Regular, Menlo, monospace';
-      ctx.fillText('УПРАЖНЕНИЯ', 90, curY);
-      curY += 44;
+      let curY = topSet && topSet.weightKg ? 600 : 495;
+      ctx.fillStyle = '#848792';
+      ctx.font = '700 19px "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
+      ctx.fillText('ВЫПОЛНЕННАЯ РАБОТА', 90, curY);
+      curY += 38;
 
       computedDayItems.slice(0, 7).forEach((it, i) => {
         const desc = it.computedBlocks
           .map((b) => (b.weightKg ? `${b.weightKg} кг × ${b.reps} × ${b.sets}` : `${b.reps} × ${b.sets}`))
           .join('  |  ');
 
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.55)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.028)';
         ctx.beginPath();
-        ctx.roundRect(90, curY - 34, 900, 74, 18);
+        ctx.roundRect(90, curY - 30, 900, 72, 16);
         ctx.fill();
 
-        ctx.fillStyle = '#F8FAFC';
-        ctx.font = 'bold 26px system-ui, -apple-system, sans-serif';
+        ctx.fillStyle = '#F7F7F9';
+        ctx.font = '600 25px "Plus Jakarta Sans", system-ui, -apple-system, sans-serif';
         const nm = `${i + 1}. ${it.name}`;
-        ctx.fillText(nm.length > 32 ? `${nm.slice(0, 32)}…` : nm, 116, curY + 10);
+        ctx.fillText(nm.length > 32 ? `${nm.slice(0, 32)}…` : nm, 116, curY + 13);
 
         ctx.textAlign = 'right';
-        ctx.fillStyle = accentHex;
-        ctx.font = 'bold 24px ui-monospace, SFMono-Regular, Menlo, monospace';
-        ctx.fillText(desc.slice(0, 28), 964, curY + 10);
+        ctx.fillStyle = i === 0 ? accentHex : '#D4D4D8';
+        ctx.font = '700 23px "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.fillText(desc.slice(0, 28), 964, curY + 13);
         ctx.textAlign = 'left';
 
-        curY += 88;
+        curY += 84;
       });
 
+      // Hairline divider above footer
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(90, 1218);
+      ctx.lineTo(990, 1218);
+      ctx.stroke();
+
       // Footer
-      ctx.fillStyle = 'rgba(148, 163, 184, 0.55)';
-      ctx.font = '20px ui-monospace, SFMono-Regular, Menlo, monospace';
+      ctx.fillStyle = '#848792';
+      ctx.font = '600 19px "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
       ctx.fillText('iron-core-sandy.vercel.app', 90, 1265);
       ctx.textAlign = 'right';
       ctx.fillStyle = accentHex;
-      ctx.font = 'bold 22px ui-monospace, SFMono-Regular, Menlo, monospace';
-      ctx.fillText('IRON CORE PWA', 990, 1265);
+      ctx.font = '700 20px "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
+      ctx.fillText('IRON CORE · MATTE CARBON', 990, 1265);
       ctx.textAlign = 'left';
 
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
@@ -2356,41 +2584,31 @@ export default function App() {
             </div>
           )}
 
-          {/* Row 3 (Workout tab only): Unified Matte Tools Strip */}
+          {/* Row 3 (Workout tab only): Minimalist 3-Tool Strip (3D is inside barbell cards) */}
           {activeTab === 'workout' && (
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-3 gap-1.5">
               <button
                 onClick={() => openHudRecorder()}
-                className="py-2 px-2 rounded-xl slate-pill text-slate-200 hover:text-white text-[11px] font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                className="py-1.5 px-2 rounded-xl slate-pill text-slate-300 hover:text-white text-[11px] font-medium flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
               >
-                <VideoIcon className="w-3.5 h-3.5 shrink-0 text-sky-300" />
-                <span>HUD</span>
-              </button>
-              <button
-                onClick={() => {
-                  NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
-                  setIsBarbellSheetOpen(true);
-                }}
-                className="py-2 px-2 rounded-xl slate-pill text-slate-200 hover:text-white text-[11px] font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
-              >
-                <Cube3DIcon className="w-3.5 h-3.5 shrink-0 text-sky-300" />
-                <span>3D гриф</span>
+                <VideoIcon className="w-3.5 h-3.5 shrink-0" />
+                <span>HUD-видео</span>
               </button>
               <button
                 onClick={() => {
                   NativeiOSBridge.haptic('medium', iosSettings.hapticsEnabled);
                   setIsFormCheckOpen(true);
                 }}
-                className="py-2 px-2 rounded-xl slate-pill text-slate-200 hover:text-white text-[11px] font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                className="py-1.5 px-2 rounded-xl slate-pill text-slate-300 hover:text-white text-[11px] font-medium flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
               >
-                <CameraIcon className="w-3.5 h-3.5 shrink-0 text-sky-300" />
+                <CameraIcon className="w-3.5 h-3.5 shrink-0" />
                 <span>Техника</span>
               </button>
               <button
                 onClick={handleShareWorkout}
-                className="py-2 px-2 rounded-xl slate-pill text-slate-200 hover:text-white text-[11px] font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                className="py-1.5 px-2 rounded-xl slate-pill text-slate-300 hover:text-white text-[11px] font-medium flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
               >
-                <ShareIcon className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                <ShareIcon className="w-3.5 h-3.5 shrink-0" />
                 <span>Итоги</span>
               </button>
             </div>
@@ -2554,6 +2772,42 @@ export default function App() {
               </div>
             )}
 
+            {/* Quick Readiness Check-in (1-tap auto-regulation) */}
+            {!isFreestyleMode && (
+              <div className="animate-cascade flex items-center justify-between gap-2 px-1" style={{ animationDelay: '35ms' }}>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 shrink-0">
+                  Готовность
+                </span>
+                <div className="grid grid-cols-3 gap-1.5 flex-1 max-w-[280px]">
+                  {(
+                    [
+                      { label: 'Разбит', sub: '-2.5%', val: -2.5 },
+                      { label: 'Норм', sub: '0%', val: 0 },
+                      { label: 'Заряжен', sub: '+2.5%', val: 2.5 },
+                    ] as const
+                  ).map((opt) => {
+                    const active = readinessShift === opt.val;
+                    return (
+                      <button
+                        key={opt.val}
+                        onClick={() => {
+                          NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
+                          setReadinessShift(opt.val);
+                        }}
+                        className={`py-1.5 px-2 rounded-xl text-[11px] font-semibold transition-all active:scale-95 flex items-center justify-center gap-1 ${
+                          active
+                            ? 'bg-sky-400 text-slate-950 font-bold'
+                            : 'slate-pill text-slate-400 hover:text-slate-100'
+                        }`}
+                      >
+                        <span>{opt.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Main Workout Card */}
             <div
               className="animate-cascade"
@@ -2567,12 +2821,12 @@ export default function App() {
                   dayTransitionDir === 'next' ? 'animate-day-next' : 'animate-day-prev'
                 }`}
               >
-                {/* Day Header + Glowing Progress Bar */}
-                <div className="px-4 pt-3.5 pb-3 border-b border-slate-400/10 space-y-2.5">
-                  <div className="flex items-center justify-between gap-2">
+                {/* Minimalist Day Header + Razor-thin 2px Progress Bar */}
+                <div className="relative px-4 pt-4 pb-3.5 border-b border-slate-400/10">
+                  <div className="flex items-end justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h2 className="text-sm font-bold text-slate-50 truncate">
+                        <h2 className="text-[15px] font-bold tracking-tight text-slate-50 truncate">
                           {isFreestyleMode ? 'Свободная тренировка' : dayObj.title}
                         </h2>
                         {!isFreestyleMode && currentDayOverride && (
@@ -2586,29 +2840,37 @@ export default function App() {
                           </button>
                         )}
                       </div>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Подходов:{' '}
-                        <span className="font-mono tabular text-sky-300 font-semibold">
-                          {completedSetsCount}/{flatDaySets.length}
-                        </span>
-                        {!isFreestyleMode && ' · свайп для смены дня'}
-                      </p>
+                      <div className="font-mono tabular text-[11px] text-slate-400 mt-1">
+                        <span className="text-sky-300 font-semibold">{completedSetsCount}</span>
+                        <span>/{flatDaySets.length} подходов</span>
+                      </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-[10px] uppercase tracking-wider text-slate-400">Тоннаж</div>
-                      <div className="font-mono tabular text-sm font-bold text-slate-50">
-                        <AnimatedNumber value={dayTonnage} /> кг
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-[10px] uppercase tracking-widest text-slate-500">Тоннаж</span>
+                        {tonnageDelta && (
+                          <span
+                            className={`font-mono tabular text-[10px] font-bold ${
+                              tonnageDelta.diff >= 0 ? 'text-sky-300' : 'text-slate-400'
+                            }`}
+                          >
+                            {tonnageDelta.diff >= 0 ? `+${tonnageDelta.diff}` : tonnageDelta.diff}
+                          </span>
+                        )}
+                      </div>
+                      <div className="font-mono tabular text-base font-extrabold text-slate-50 leading-tight mt-0.5">
+                        <AnimatedNumber value={dayTonnage} /> <span className="text-[11px] font-semibold text-slate-400">кг</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Glowing Workout Progress Bar */}
-                  <div className="w-full h-2 rounded-full bg-slate-950/90 overflow-hidden">
+                  {/* Flush 2px Progress Bar */}
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-white/[0.04] overflow-hidden">
                     <div
                       style={{
                         width: `${flatDaySets.length > 0 ? Math.round((completedSetsCount / flatDaySets.length) * 100) : 0}%`,
                       }}
-                      className="h-full rounded-full bg-sky-400 transition-all duration-300"
+                      className="h-full bg-sky-400 transition-all duration-300"
                     />
                   </div>
                 </div>
@@ -2633,15 +2895,21 @@ export default function App() {
 
                 <div className="divide-y divide-slate-400/10">
                   {computedDayItems.length === 0 && (
-                    <div className="p-8 text-center space-y-3">
-                      <p className="text-xs text-slate-400">Пока нет упражнений в тренировке.</p>
+                    <div className="py-10 px-6 text-center flex flex-col items-center">
+                      <div className="w-11 h-11 rounded-2xl bg-white/[0.04] border border-white/[0.07] flex items-center justify-center text-slate-400 mb-3">
+                        <DumbbellIcon className="w-5 h-5" />
+                      </div>
+                      <div className="text-sm font-semibold text-slate-100">Тренировка пока пуста</div>
+                      <p className="text-xs text-slate-400 mt-1 max-w-[240px]">
+                        Добавь первое упражнение, чтобы начать считать подходы и тоннаж.
+                      </p>
                       {isFreestyleMode && (
                         <button
                           onClick={() => setIsFreestyleBuilderOpen(true)}
-                          className="px-4 py-2 rounded-xl bg-emerald-400 text-slate-950 text-xs font-extrabold inline-flex items-center gap-1.5"
+                          className="mt-4 px-4 py-2.5 rounded-xl bg-emerald-400 text-slate-950 text-xs font-extrabold inline-flex items-center gap-1.5 active:scale-95 transition-transform"
                         >
                           <PlusIcon className="w-3.5 h-3.5" />
-                          <span>Добавить первое упражнение</span>
+                          <span>Добавить упражнение</span>
                         </button>
                       )}
                     </div>
@@ -2723,11 +2991,7 @@ export default function App() {
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-mono text-xs text-slate-500">{idx + 1}.</span>
                                 <span className="text-sm font-semibold text-slate-50">{item.name}</span>
-                                {item.isBase && (
-                                  <span className="px-2 py-0.5 text-[10px] font-mono font-semibold rounded-md bg-white/[0.06] text-slate-200 border border-white/10">
-                                    1ПМ {item.oneRepMax} кг
-                                  </span>
-                                )}
+
                                 {!item.isBase && item.rememberedWeight && (
                                   <span className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-emerald-400/10 text-emerald-300">
                                     прошл. {item.rememberedWeight} кг
@@ -2882,7 +3146,9 @@ export default function App() {
                                           <span className="text-xs font-bold opacity-75">кг</span>
                                         </span>
                                         <span className="font-mono tabular text-[11px] text-slate-400">
-                                          {b.effectivePct > 0 ? `${b.effectivePct}% · ` : ''}
+                                          {b.effectivePct > 0
+                                            ? `${b.effectivePct}%${item.oneRepMax ? ` (от ${item.oneRepMax})` : ''} · `
+                                            : ''}
                                           {b.reps} повт. × {b.sets}
                                         </span>
                                       </>
@@ -2898,7 +3164,7 @@ export default function App() {
                                     if (plates.length === 0) return null;
                                     return (
                                       <div className="flex items-center gap-1 flex-wrap mt-2">
-                                        <span className="text-[10px] font-mono text-slate-500 mr-0.5">на сторону:</span>
+
                                         {plates.map((p, pIdx) => (
                                           <span
                                             key={`${p.weight}-${pIdx}`}
@@ -3227,8 +3493,33 @@ export default function App() {
             </div>
 
             {filteredRecipes.length === 0 ? (
-              <div className="slate-card rounded-[24px] p-8 text-center text-xs text-slate-400">
-                Ничего не найдено. Попробуй сбросить фильтр или добавь свой рецепт.
+              <div className="slate-card rounded-[24px] py-10 px-6 text-center flex flex-col items-center">
+                <div className="w-11 h-11 rounded-2xl bg-white/[0.04] border border-white/[0.07] flex items-center justify-center text-slate-400 mb-3">
+                  <SearchIcon className="w-5 h-5" />
+                </div>
+                <div className="text-sm font-semibold text-slate-100">Ничего не найдено</div>
+                <p className="text-xs text-slate-400 mt-1 max-w-[260px]">
+                  Попробуй сбросить фильтры или добавь свой рецепт в базу.
+                </p>
+                <div className="flex items-center gap-2 mt-4">
+                  <button
+                    onClick={() => {
+                      setRecipeCategory('Все');
+                      setRecipeSearch('');
+                      setRecipeSort('default');
+                    }}
+                    className="px-3.5 py-2 rounded-xl slate-well text-xs font-semibold text-slate-200 active:scale-95 transition-transform"
+                  >
+                    Сбросить фильтр
+                  </button>
+                  <button
+                    onClick={() => setIsAddRecipeSheetOpen(true)}
+                    className="px-3.5 py-2 rounded-xl bg-amber-400 text-slate-950 text-xs font-extrabold inline-flex items-center gap-1 active:scale-95 transition-transform"
+                  >
+                    <PlusIcon className="w-3.5 h-3.5" />
+                    <span>Свой рецепт</span>
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
@@ -3281,11 +3572,11 @@ export default function App() {
                       </div>
 
                       <div className="mt-3.5 space-y-2.5">
-                        {/* 3-color Macro Balance Strip */}
-                        <div className="w-full h-1.5 rounded-full overflow-hidden flex bg-slate-950/80">
-                          <div style={{ width: `${pW}%` }} className="bg-teal-400" title={`Белки ${meal.p}г`} />
-                          <div style={{ width: `${fW}%` }} className="bg-amber-400" title={`Жиры ${meal.f}г`} />
-                          <div style={{ width: `${cW}%` }} className="bg-sky-400" title={`Углеводы ${meal.c}г`} />
+                        {/* Unified Carbon & Volt Lime Macro Balance Strip */}
+                        <div className="w-full h-1 rounded-full overflow-hidden flex gap-0.5 bg-white/[0.04]">
+                          <div style={{ width: `${pW}%`, backgroundColor: '#c8f550' }} title={`Белки ${meal.p}г`} />
+                          <div style={{ width: `${fW}%`, backgroundColor: '#e4e4e7' }} title={`Жиры ${meal.f}г`} />
+                          <div style={{ width: `${cW}%`, backgroundColor: '#52525b' }} title={`Углеводы ${meal.c}г`} />
                         </div>
 
                         <div className="pt-2 border-t border-slate-400/10 flex items-center justify-between gap-2">
@@ -3475,40 +3766,40 @@ export default function App() {
                         <div className="flex items-center justify-between gap-4 p-3.5 rounded-2xl slate-well">
                           <div className="relative w-32 h-32 shrink-0 flex items-center justify-center">
                             <svg className="w-32 h-32 -rotate-90" viewBox="0 0 120 120">
-                              <circle cx="60" cy="60" r={r1} fill="none" stroke="rgba(251,113,133,0.16)" strokeWidth="8.5" />
+                              <circle cx="60" cy="60" r={r1} fill="none" stroke="rgba(200,245,80,0.12)" strokeWidth="8" />
                               <circle
                                 cx="60"
                                 cy="60"
                                 r={r1}
                                 fill="none"
-                                stroke="#FB7185"
-                                strokeWidth="8.5"
+                                stroke="#C8F550"
+                                strokeWidth="8"
                                 strokeLinecap="round"
                                 strokeDasharray={c1}
                                 strokeDashoffset={c1 * (1 - kcalPct)}
                                 className="transition-all duration-700"
                               />
-                              <circle cx="60" cy="60" r={r2} fill="none" stroke="rgba(45,212,191,0.16)" strokeWidth="8.5" />
+                              <circle cx="60" cy="60" r={r2} fill="none" stroke="rgba(244,244,245,0.12)" strokeWidth="8" />
                               <circle
                                 cx="60"
                                 cy="60"
                                 r={r2}
                                 fill="none"
-                                stroke="#2DD4BF"
-                                strokeWidth="8.5"
+                                stroke="#F4F4F5"
+                                strokeWidth="8"
                                 strokeLinecap="round"
                                 strokeDasharray={c2}
                                 strokeDashoffset={c2 * (1 - protPct)}
                                 className="transition-all duration-700"
                               />
-                              <circle cx="60" cy="60" r={r3} fill="none" stroke="rgba(56,189,248,0.16)" strokeWidth="8.5" />
+                              <circle cx="60" cy="60" r={r3} fill="none" stroke="rgba(161,161,170,0.14)" strokeWidth="8" />
                               <circle
                                 cx="60"
                                 cy="60"
                                 r={r3}
                                 fill="none"
-                                stroke="#38BDF8"
-                                strokeWidth="8.5"
+                                stroke="#71717A"
+                                strokeWidth="8"
                                 strokeLinecap="round"
                                 strokeDasharray={c3}
                                 strokeDashoffset={c3 * (1 - carbPct)}
@@ -3526,34 +3817,34 @@ export default function App() {
                           <div className="flex-1 space-y-2 text-xs">
                             <div className="flex items-center justify-between gap-2">
                               <span className="inline-flex items-center gap-1.5 text-slate-300">
-                                <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
+                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#C8F550' }} />
                                 Калории
                               </span>
-                              <span className="font-mono tabular font-bold text-rose-300">
+                              <span className="font-mono tabular font-bold text-sky-300">
                                 {Math.round(nutritionTotals.kcal)} / {targetKcal}
                               </span>
                             </div>
                             <div className="flex items-center justify-between gap-2">
                               <span className="inline-flex items-center gap-1.5 text-slate-300">
-                                <span className="w-2.5 h-2.5 rounded-full bg-teal-400" />
+                                <span className="w-2 h-2 rounded-full bg-zinc-100" />
                                 Белки
                               </span>
-                              <span className="font-mono tabular font-bold text-teal-300">
+                              <span className="font-mono tabular font-bold text-slate-100">
                                 {Math.round(nutritionTotals.p)} / {targetProtein} г
                               </span>
                             </div>
                             <div className="flex items-center justify-between gap-2">
                               <span className="inline-flex items-center gap-1.5 text-slate-300">
-                                <span className="w-2.5 h-2.5 rounded-full bg-sky-400" />
+                                <span className="w-2 h-2 rounded-full bg-zinc-500" />
                                 Углеводы
                               </span>
-                              <span className="font-mono tabular font-bold text-sky-300">
+                              <span className="font-mono tabular font-bold text-slate-300">
                                 {Math.round(nutritionTotals.c)} / {targetCarbs} г
                               </span>
                             </div>
                             <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-400/10">
                               <span className="text-slate-400 text-[11px]">Жиры</span>
-                              <span className="font-mono tabular text-[11px] font-bold text-amber-300">
+                              <span className="font-mono tabular text-[11px] font-bold text-slate-300">
                                 {Math.round(nutritionTotals.f)} г
                               </span>
                             </div>
@@ -3706,8 +3997,24 @@ export default function App() {
                     </div>
 
                     {nutritionLog.entries.length === 0 ? (
-                      <div className="text-xs text-slate-500 py-4 text-center">
-                        Пока пусто. Нажми «+ Быстро» или добавь блюдо из «Рецептов».
+                      <div className="py-8 px-4 text-center flex flex-col items-center">
+                        <div className="w-10 h-10 rounded-2xl bg-white/[0.04] border border-white/[0.07] flex items-center justify-center text-slate-400 mb-2.5">
+                          <SaladIcon className="w-5 h-5" />
+                        </div>
+                        <div className="text-xs font-semibold text-slate-200">Рацион на сегодня пуст</div>
+                        <p className="text-[11px] text-slate-400 mt-1">
+                          Запиши перекус или добавь блюдо из базы рецептов.
+                        </p>
+                        <button
+                          onClick={() => {
+                            NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
+                            setIsQuickAddMealOpen(true);
+                          }}
+                          className="mt-3.5 px-3.5 py-2 rounded-xl bg-teal-400 text-slate-950 text-xs font-extrabold inline-flex items-center gap-1 active:scale-95 transition-transform"
+                        >
+                          <PlusIcon className="w-3.5 h-3.5" />
+                          <span>Быстрая запись</span>
+                        </button>
                       </div>
                     ) : (
                       <div className="space-y-3">
@@ -3926,8 +4233,14 @@ export default function App() {
                   </div>
 
                   {shoppingList.length === 0 ? (
-                    <div className="text-xs text-slate-500 py-6 text-center">
-                      Список пуст. Нажми на иконку корзины на любом рецепте, чтобы закинуть продукты сюда.
+                    <div className="py-9 px-4 text-center flex flex-col items-center">
+                      <div className="w-10 h-10 rounded-2xl bg-white/[0.04] border border-white/[0.07] flex items-center justify-center text-slate-400 mb-2.5">
+                        <CartIcon className="w-5 h-5" />
+                      </div>
+                      <div className="text-xs font-semibold text-slate-200">Список покупок пуст</div>
+                      <p className="text-[11px] text-slate-400 mt-1 max-w-[250px]">
+                        Введи продукт выше или нажми на иконку корзины в любом рецепте.
+                      </p>
                     </div>
                   ) : (
                     <div className="space-y-1.5">
@@ -3986,37 +4299,40 @@ export default function App() {
               </p>
               <div className="mt-4 space-y-3">
                 {exercises.map((ex) => (
-                  <div key={ex.id} className="flex items-center justify-between p-3.5 rounded-2xl slate-well">
-                    <div>
-                      <div className="text-sm font-medium text-slate-50">{ex.name}</div>
-                      <div className="text-[11px] font-mono text-slate-400">
-                        Гриф {ex.barbellWeight} кг · Шаг 2.5 кг
+                  <div key={ex.id} className="p-3.5 rounded-2xl slate-well">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <div className="text-sm font-medium text-slate-50">{ex.name}</div>
+                        <div className="text-[11px] font-mono text-slate-400">
+                          Гриф {ex.barbellWeight} кг · Шаг 2.5 кг
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleUpdate1RM(ex.id, ex.oneRepMax - 2.5)}
+                          className="w-9 h-9 rounded-xl bg-slate-900 font-mono text-xs text-slate-200 active:scale-90 transition-transform"
+                        >
+                          -2.5
+                        </button>
+                        <div className="flex items-baseline bg-slate-950/90 border border-slate-400/15 rounded-xl px-3 py-1.5">
+                          <input
+                            type="number"
+                            step="2.5"
+                            value={ex.oneRepMax || ''}
+                            onChange={(e) => handleUpdate1RM(ex.id, e.target.value)}
+                            className="w-16 text-center bg-transparent font-mono tabular text-base font-bold text-violet-300 focus:outline-none"
+                          />
+                          <span className="text-xs text-slate-400 font-mono">кг</span>
+                        </div>
+                        <button
+                          onClick={() => handleUpdate1RM(ex.id, ex.oneRepMax + 2.5)}
+                          className="w-9 h-9 rounded-xl bg-slate-900 font-mono text-xs text-slate-200 active:scale-90 transition-transform"
+                        >
+                          +2.5
+                        </button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleUpdate1RM(ex.id, ex.oneRepMax - 2.5)}
-                        className="w-9 h-9 rounded-xl bg-slate-900 font-mono text-xs text-slate-200 active:scale-90 transition-transform"
-                      >
-                        -2.5
-                      </button>
-                      <div className="flex items-baseline bg-slate-950/90 border border-slate-400/15 rounded-xl px-3 py-1.5">
-                        <input
-                          type="number"
-                          step="2.5"
-                          value={ex.oneRepMax || ''}
-                          onChange={(e) => handleUpdate1RM(ex.id, e.target.value)}
-                          className="w-16 text-center bg-transparent font-mono tabular text-base font-bold text-violet-300 focus:outline-none"
-                        />
-                        <span className="text-xs text-slate-400 font-mono">кг</span>
-                      </div>
-                      <button
-                        onClick={() => handleUpdate1RM(ex.id, ex.oneRepMax + 2.5)}
-                        className="w-9 h-9 rounded-xl bg-slate-900 font-mono text-xs text-slate-200 active:scale-90 transition-transform"
-                      >
-                        +2.5
-                      </button>
-                    </div>
+                    <Sparkline1RM history={ex.history} currentWeight={ex.oneRepMax} id={ex.id} />
                   </div>
                 ))}
               </div>
@@ -4035,6 +4351,8 @@ export default function App() {
                   </div>
                 </div>
               </div>
+
+              <StreakHeatmap sessions={workoutSessions} />
             </div>
 
             <div className="lg:col-span-5 space-y-4 animate-cascade" style={{ animationDelay: '110ms' }}>
@@ -4373,71 +4691,103 @@ export default function App() {
       {/* ================= BOTTOM SHEET: КАРТОЧКА РЕЦЕПТА ================= */}
       <BottomSheet
         isOpen={Boolean(activeRecipeSheet)}
-        onClose={() => setActiveRecipeSheet(null)}
+        onClose={() => {
+          setIsCookMode(false);
+          setActiveRecipeSheet(null);
+        }}
         onDragProgress={setSheetDragRatio}
         title={activeRecipeSheet?.name || ''}
-        subtitle={activeRecipeSheet ? `${activeRecipeSheet.category} · ${activeRecipeSheet.portionNote}` : ''}
+        subtitle={
+          activeRecipeSheet
+            ? isCookMode
+              ? 'Режим «Готовлю» · Экран не гаснет'
+              : `${activeRecipeSheet.category} · ${activeRecipeSheet.portionNote}`
+            : ''
+        }
         hapticsEnabled={iosSettings.hapticsEnabled}
       >
         {activeRecipeSheet && (
           <div>
+            {/* Cook Mode Toggle */}
             <div className="flex items-center justify-between slate-well rounded-xl p-2 mb-3">
-              <span className="text-[11px] text-slate-400 pl-2">Размер порции:</span>
-              <div className="flex gap-1">
-                {[0.5, 1, 1.5, 2].map((sc) => (
-                  <button
-                    key={sc}
-                    onClick={() => {
-                      NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
-                      setRecipePortionScale(sc);
-                    }}
-                    className={`px-2.5 py-1 rounded-lg font-mono text-xs font-semibold transition-all ${
-                      recipePortionScale === sc ? 'bg-amber-400 text-slate-950 font-bold' : 'bg-slate-900 text-slate-300'
-                    }`}
-                  >
-                    {sc}×
-                  </button>
-                ))}
-              </div>
+              <span className="text-[11px] font-semibold text-slate-200 pl-2 inline-flex items-center gap-1.5">
+                <FlameIcon className="w-3.5 h-3.5 text-sky-300" />
+                <span>Режим «Готовлю»</span>
+              </span>
+              <button
+                onClick={() => {
+                  NativeiOSBridge.haptic('medium', iosSettings.hapticsEnabled);
+                  setIsCookMode((v) => !v);
+                }}
+                className={`px-3 py-1 rounded-lg font-mono text-[11px] font-bold transition-all active:scale-95 ${
+                  isCookMode ? 'bg-sky-400 text-slate-950' : 'bg-slate-900 text-slate-300'
+                }`}
+              >
+                {isCookMode ? 'Вкл · Экран активен' : 'Включить'}
+              </button>
             </div>
 
-            <div className="grid grid-cols-4 gap-2 my-3">
-              <div className="p-2.5 rounded-xl slate-well text-center">
-                <div className="text-[10px] text-slate-400">Калории</div>
-                <div className="font-mono tabular text-sm font-bold text-amber-300">
-                  <AnimatedNumber value={Math.round(activeRecipeSheet.kcal * recipePortionScale)} />
+            {!isCookMode && (
+              <>
+                <div className="flex items-center justify-between slate-well rounded-xl p-2 mb-3">
+                  <span className="text-[11px] text-slate-400 pl-2">Размер порции:</span>
+                  <div className="flex gap-1">
+                    {[0.5, 1, 1.5, 2].map((sc) => (
+                      <button
+                        key={sc}
+                        onClick={() => {
+                          NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
+                          setRecipePortionScale(sc);
+                        }}
+                        className={`px-2.5 py-1 rounded-lg font-mono text-xs font-semibold transition-all ${
+                          recipePortionScale === sc ? 'bg-amber-400 text-slate-950 font-bold' : 'bg-slate-900 text-slate-300'
+                        }`}
+                      >
+                        {sc}×
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div className="p-2.5 rounded-xl slate-well text-center">
-                <div className="text-[10px] text-slate-400">Белки</div>
-                <div className="font-mono tabular text-sm font-bold text-slate-50">
-                  <AnimatedNumber value={Math.round(activeRecipeSheet.p * recipePortionScale)} /> г
-                </div>
-              </div>
-              <div className="p-2.5 rounded-xl slate-well text-center">
-                <div className="text-[10px] text-slate-400">Жиры</div>
-                <div className="font-mono tabular text-sm font-bold text-slate-50">
-                  <AnimatedNumber value={Math.round(activeRecipeSheet.f * recipePortionScale)} /> г
-                </div>
-              </div>
-              <div className="p-2.5 rounded-xl slate-well text-center">
-                <div className="text-[10px] text-slate-400">Углеводы</div>
-                <div className="font-mono tabular text-sm font-bold text-slate-50">
-                  <AnimatedNumber value={Math.round(activeRecipeSheet.c * recipePortionScale)} /> г
-                </div>
-              </div>
-            </div>
 
-            {activeRecipeSheet.video && (
-              <div className="my-3 rounded-2xl overflow-hidden bg-slate-950">
-                <video
-                  src={activeRecipeSheet.video}
-                  controls
-                  playsInline
-                  preload="metadata"
-                  className="w-full max-h-60 object-contain"
-                />
-              </div>
+                <div className="grid grid-cols-4 gap-2 my-3">
+                  <div className="p-2.5 rounded-xl slate-well text-center">
+                    <div className="text-[10px] text-slate-400">Калории</div>
+                    <div className="font-mono tabular text-sm font-bold text-amber-300">
+                      <AnimatedNumber value={Math.round(activeRecipeSheet.kcal * recipePortionScale)} />
+                    </div>
+                  </div>
+                  <div className="p-2.5 rounded-xl slate-well text-center">
+                    <div className="text-[10px] text-slate-400">Белки</div>
+                    <div className="font-mono tabular text-sm font-bold text-slate-50">
+                      <AnimatedNumber value={Math.round(activeRecipeSheet.p * recipePortionScale)} /> г
+                    </div>
+                  </div>
+                  <div className="p-2.5 rounded-xl slate-well text-center">
+                    <div className="text-[10px] text-slate-400">Жиры</div>
+                    <div className="font-mono tabular text-sm font-bold text-slate-50">
+                      <AnimatedNumber value={Math.round(activeRecipeSheet.f * recipePortionScale)} /> г
+                    </div>
+                  </div>
+                  <div className="p-2.5 rounded-xl slate-well text-center">
+                    <div className="text-[10px] text-slate-400">Углеводы</div>
+                    <div className="font-mono tabular text-sm font-bold text-slate-50">
+                      <AnimatedNumber value={Math.round(activeRecipeSheet.c * recipePortionScale)} /> г
+                    </div>
+                  </div>
+                </div>
+
+                {activeRecipeSheet.video && (
+                  <div className="my-3 rounded-2xl overflow-hidden bg-slate-950">
+                    <video
+                      src={activeRecipeSheet.video}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="w-full max-h-60 object-contain"
+                    />
+                  </div>
+                )}
+              </>
             )}
 
             <div className="mt-3 p-3.5 rounded-2xl slate-well">
@@ -4479,7 +4829,7 @@ export default function App() {
 
             <div className="mt-3 p-3.5 rounded-2xl slate-well text-xs space-y-2.5">
               <div className="text-[11px] font-semibold text-slate-200">Приготовление:</div>
-              <p className="text-slate-300 leading-relaxed">{activeRecipeSheet.steps}</p>
+              <p className={isCookMode ? "text-base text-slate-100 leading-relaxed font-medium" : "text-slate-300 leading-relaxed"}>{activeRecipeSheet.steps}</p>
               {(() => {
                 const mins = extractCookMinutes(activeRecipeSheet.steps);
                 if (mins.length === 0) return null;
@@ -5461,6 +5811,73 @@ export default function App() {
         </div>
       </BottomSheet>
 
+      {/* ================= BOTTOM SHEET: ИТОГИ ТРЕНИРОВКИ (SUMMARY) ================= */}
+      <BottomSheet
+        isOpen={isWorkoutSummaryOpen}
+        onClose={() => setIsWorkoutSummaryOpen(false)}
+        onDragProgress={setSheetDragRatio}
+        title="Тренировка закрыта"
+        subtitle={isFreestyleMode ? 'Свободная тренировка' : `${activeProgram.title} · ${dayObj.title}`}
+        hapticsEnabled={iosSettings.hapticsEnabled}
+      >
+        <div className="space-y-4 mt-2">
+          {sessionPrHit && (
+            <div className="p-3.5 rounded-2xl bg-sky-400/15 border border-sky-400/35 flex items-center justify-between gap-3">
+              <div>
+                <div className="font-mono text-[10px] uppercase tracking-widest text-sky-300 font-bold">
+                  Новый расчётный рекорд · PR
+                </div>
+                <div className="text-sm font-bold text-slate-50 mt-0.5">{sessionPrHit.name}</div>
+              </div>
+              <div className="text-right font-mono tabular shrink-0">
+                <div className="text-base font-extrabold text-sky-300">{sessionPrHit.est1RM} кг</div>
+                <div className="text-[10px] text-slate-400">было {sessionPrHit.prev1RM} кг</div>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="p-4 rounded-2xl slate-well">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Общий тоннаж</div>
+              <div className="font-mono tabular text-2xl font-extrabold text-slate-50 mt-1">
+                <AnimatedNumber value={dayTonnage} /> <span className="text-xs text-slate-400">кг</span>
+              </div>
+              {tonnageDelta && (
+                <div className="font-mono text-[11px] font-bold text-sky-300 mt-1">
+                  {tonnageDelta.diff >= 0 ? `+${tonnageDelta.diff} кг` : `${tonnageDelta.diff} кг`} (
+                  {tonnageDelta.pct >= 0 ? `+${tonnageDelta.pct}%` : `${tonnageDelta.pct}%`}) к прошл.
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 rounded-2xl slate-well">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Подходы</div>
+              <div className="font-mono tabular text-2xl font-extrabold text-emerald-300 mt-1">
+                {completedSetsCount}/{flatDaySets.length}
+              </div>
+              <div className="font-mono text-[11px] text-slate-400 mt-1">
+                {flatDaySets.length > 0 ? Math.round((completedSetsCount / flatDaySets.length) * 100) : 100}% плана
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => void handleShareWorkout()}
+            className="w-full py-3.5 rounded-xl bg-sky-400 hover:bg-sky-300 text-slate-950 text-xs font-extrabold flex items-center justify-center gap-2 active:scale-95 transition-transform"
+          >
+            <ShareIcon className="w-4 h-4" />
+            <span>Сохранить PNG-карточку итогов</span>
+          </button>
+
+          <button
+            onClick={() => setIsWorkoutSummaryOpen(false)}
+            className="w-full py-2.5 rounded-xl slate-well text-xs font-semibold text-slate-300 active:scale-95 transition-transform"
+          >
+            Готово
+          </button>
+        </div>
+      </BottomSheet>
+
       {/* ================= FLOATING ACTION BAR: «СЛЕДУЮЩИЙ ПОДХОД» + «ЗАЛ» ================= */}
       {activeTab === 'workout' && (
         <div className="fixed bottom-[calc(4.65rem+env(safe-area-inset-bottom))] left-0 right-0 px-4 z-40 pointer-events-none">
@@ -5482,7 +5899,18 @@ export default function App() {
               </div>
             )}
 
-            <div className="ios-glass-card rounded-[22px] p-2.5 flex items-center justify-between gap-2">
+            <div className="relative overflow-hidden ios-glass-card rounded-[22px] p-2.5 flex items-center justify-between gap-2">
+              {timerRunning && timerTotal > 0 && (
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-white/[0.06] pointer-events-none">
+                  <div
+                    style={{
+                      width: `${Math.max(0, Math.min(100, (timerSec / timerTotal) * 100))}%`,
+                      backgroundColor: 'var(--ic-accent, #c8f550)',
+                    }}
+                    className="h-full transition-all duration-500 linear"
+                  />
+                </div>
+              )}
               {nextPendingSet ? (
                 <>
                   <div className="pl-2 min-w-0 flex-1">
@@ -5524,9 +5952,18 @@ export default function App() {
                   </button>
                 </>
               ) : (
-                <div className="w-full py-1.5 text-center text-xs font-bold text-emerald-300">
-                  Все подходы сегодняшней тренировки выполнены ✓
-                </div>
+                <button
+                  onClick={() => {
+                    NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
+                    setIsWorkoutSummaryOpen(true);
+                  }}
+                  className="w-full py-2 px-3 rounded-xl flex items-center justify-between gap-2 text-xs font-bold text-emerald-300 active:scale-[0.98] transition-transform"
+                >
+                  <span>Тренировка закрыта ✓ · {dayTonnage} кг</span>
+                  <span className="px-2.5 py-1 rounded-lg bg-sky-400 text-slate-950 font-extrabold text-[11px]">
+                    Итоги
+                  </span>
+                </button>
               )}
             </div>
           </div>

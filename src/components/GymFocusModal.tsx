@@ -93,7 +93,7 @@ export const GymFocusModal: React.FC<GymFocusModalProps> = ({
       : 0;
 
   return (
-    <div className="fixed inset-0 z-[75] bg-[#0d0d0f] flex flex-col justify-between p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))] overflow-y-auto">
+    <div className="fixed inset-0 z-[75] bg-[#090a0c] flex flex-col justify-between p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))] overflow-y-auto">
       {/* Top Bar */}
       <div className="flex items-center justify-between gap-3 max-w-xl w-full mx-auto">
         <div className="min-w-0">
@@ -130,7 +130,7 @@ export const GymFocusModal: React.FC<GymFocusModalProps> = ({
             <div className="flex-1 h-2.5 slate-well rounded-full overflow-hidden">
               <div
                 style={{ width: `${progressPct}%` }}
-                className="h-full bg-gradient-to-r from-emerald-400 to-sky-400 transition-all duration-500 linear"
+                className="h-full bg-[#c8f550] transition-all duration-500 linear"
               />
             </div>
             <button

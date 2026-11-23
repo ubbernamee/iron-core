@@ -61,6 +61,7 @@ export const DynamicIslandBar: React.FC<DynamicIslandBarProps> = ({
       : totalCount > 0
       ? (completedCount / totalCount) * 100
       : 0;
+  const isPreStart = timerRunning && timerSec > 0 && timerSec <= 5;
   const isUrgent = timerRunning && timerSec > 0 && timerSec <= 10;
   const radius = 9;
   const circumference = 2 * Math.PI * radius;
@@ -88,7 +89,7 @@ export const DynamicIslandBar: React.FC<DynamicIslandBarProps> = ({
                     cy="12"
                     r={radius}
                     fill="none"
-                    stroke={timerRunning ? '#4ADE80' : '#C8F550'}
+                    stroke={isPreStart ? '#F59E0B' : timerRunning ? '#4ADE80' : '#C8F550'}
                     strokeWidth="2.5"
                     strokeDasharray={circumference}
                     strokeDashoffset={strokeDashoffset}
@@ -104,7 +105,7 @@ export const DynamicIslandBar: React.FC<DynamicIslandBarProps> = ({
                 }`}
               >
                 {timerRunning
-                  ? `Отдых ${formatTime(timerSec)}`
+                  ? `${isPreStart ? 'Готовься' : 'Отдых'} ${formatTime(timerSec)}`
                   : nextPendingSet
                   ? nextPendingSet.weightKg
                     ? `${nextPendingSet.weightKg} кг × ${nextPendingSet.reps}`
