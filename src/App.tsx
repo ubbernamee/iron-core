@@ -1,6 +1,10 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatedNumber } from './components/AnimatedNumber';
 const BarbellWebGL3D = lazy(() => import('./components/BarbellWebGL3D').then((m) => ({ default: m.BarbellWebGL3D })));
+const MuscleLoad3D = lazy(() => import('./components/MuscleLoad3D').then((m) => ({ default: m.MuscleLoad3D })));
+const AthleteRankCard = lazy(() => import('./components/AthleteRankCard').then((m) => ({ default: m.AthleteRankCard })));
+import { RestTimerEdgeBar, Sparkline1RM, StreakHeatmap } from './components/AnalyticsWidgets';
+import { generateWorkoutSummaryBlob } from './utils/workoutSummaryCard';
 import { BottomSheet } from './components/BottomSheet';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { restTimerStore, useRestTimer } from './hooks/useRestTimerStore';
@@ -25,7 +29,6 @@ import {
   DownloadIcon,
   DumbbellIcon,
   FileTextIcon,
-  FilterIcon,
   FlameIcon,
   FridgeIcon,
   MicIcon,
@@ -48,13 +51,14 @@ import {
   isCloudConfigured,
   joinLiveGymRoom,
   LiveGymPeerState,
+  LiveGymReaction,
   pullBackupFromCloud,
   pushBackupToCloud,
   initOfflineCloudSync,
   syncNutritionDayReliable,
   syncWorkoutSessionReliable,
 } from './services/cloudSync';
-import { enableBackgroundPush, scheduleBackgroundPush, sendLocalRestNotification } from './services/webPush';
+import { enableBackgroundPush } from './services/webPush';
 import { createVoiceCoach, isVoiceSupported, VoiceCoachController, VoiceCommand } from './services/voiceCoach';
 import { TAB_THEMES } from './components/LivingAuroraBackdrop';
 import { PwaUpdateBanner } from './components/PwaUpdateBanner';
@@ -80,7 +84,7 @@ import {
   saveWorkoutSession,
   SnapshotRecord,
 } from './storage/db';
-import { computeMuscleLoad } from './data/exerciseCatalog';
+import { computeMuscleLoad, MUSCLE_LABELS_RU } from './data/exerciseCatalog';
 import {
   ACCENT_PRESETS,
   AVATAR_COLORS,
@@ -115,6 +119,8 @@ import {
   FullBackupPayload,
   IOSSettings,
   MealTemplate,
+  MuscleGroupId,
+  NutritionDayRecord,
   NutritionLog,
   ProgramPosition,
   ShoppingItem,
@@ -122,185 +128,6 @@ import {
   TrainingProgram,
   WorkoutSessionRecord,
 } from './types';
-
-function Sparkline1RM({
-  history,
-  currentWeight,
-  id,
-}: {
-  history?: { date: string; weight: number }[];
-  currentWeight: number;
-  id: string;
-}) {
-  const pts = (history && history.length > 0 ? history : [{ date: '', weight: currentWeight }]).slice(-12);
-  const weights = pts.map((p) => p.weight);
-  const first = weights[0] ?? currentWeight;
-  const last = weights[weights.length - 1] ?? currentWeight;
-  const delta = Number((last - first).toFixed(1));
-  const minW = Math.min(...weights);
-  const maxW = Math.max(...weights);
-  const span = Math.max(1, maxW - minW);
-
-  const width = 220;
-  const height = 34;
-  const padX = 4;
-  const padY = 5;
-
-  const coords =
-    pts.length === 1
-      ? [
-          { x: padX, y: height / 2 },
-          { x: width - padX, y: height / 2 },
-        ]
-      : pts.map((p, idx) => {
-          const x = padX + (idx / (pts.length - 1)) * (width - padX * 2);
-          const y = height - padY - ((p.weight - minW) / span) * (height - padY * 2);
-          return { x, y };
-        });
-
-  const linePoints = coords.map((c) => `${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ');
-  const areaPath = `M ${coords[0].x.toFixed(1)} ${height} L ${coords
-    .map((c) => `${c.x.toFixed(1)} ${c.y.toFixed(1)}`)
-    .join(' L ')} L ${coords[coords.length - 1].x.toFixed(1)} ${height} Z`;
-  const lastPt = coords[coords.length - 1];
-  const gradId = `spark-grad-${id}`;
-
-  return (
-    <div className="mt-2.5 pt-2.5 border-t border-white/[0.045] flex items-center justify-between gap-3">
-      <div className="flex-1 min-w-0">
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-8 overflow-visible" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--ic-accent, #c8f550)" stopOpacity="0.22" />
-              <stop offset="100%" stopColor="var(--ic-accent, #c8f550)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <path d={areaPath} fill={`url(#${gradId})`} />
-          <polyline
-            fill="none"
-            stroke="var(--ic-accent, #c8f550)"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            points={linePoints}
-          />
-          <circle cx={lastPt.x} cy={lastPt.y} r="3" fill="var(--ic-accent, #c8f550)" />
-        </svg>
-      </div>
-      <div className="text-right shrink-0">
-        <div
-          className={`font-mono tabular text-[11px] font-bold ${
-            delta > 0 ? 'text-sky-300' : delta < 0 ? 'text-rose-300' : 'text-slate-400'
-          }`}
-        >
-          {pts.length > 1 ? `${delta > 0 ? '+' : ''}${delta} кг` : 'База'}
-        </div>
-        <div className="font-mono text-[9px] text-slate-500">
-          {pts.length > 1 ? `${pts.length} зам.` : '1 запись'}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StreakHeatmap({ sessions }: { sessions: WorkoutSessionRecord[] }) {
-  const daysCount = 84; // 12 weeks
-  const today = new Date();
-  const byDate = new Map<string, number>();
-  for (const s of sessions) {
-    if (!s.date) continue;
-    const prev = byDate.get(s.date) || 0;
-    const score = s.tonnageKg > 0 ? s.tonnageKg : s.completedSets * 100;
-    byDate.set(s.date, prev + score);
-  }
-
-  const maxScore = Math.max(1, ...Array.from(byDate.values()));
-  const cells: { key: string; level: 0 | 1 | 2 | 3 | 4; score: number }[] = [];
-  for (let i = daysCount - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
-    const score = byDate.get(key) || 0;
-    let level: 0 | 1 | 2 | 3 | 4 = 0;
-    if (score > 0) {
-      const ratio = score / maxScore;
-      if (ratio >= 0.75) level = 4;
-      else if (ratio >= 0.45) level = 3;
-      else if (ratio >= 0.2) level = 2;
-      else level = 1;
-    }
-    cells.push({ key, level, score });
-  }
-
-  // Count active weeks streak & total sessions in 12w
-  const activeDaysCount = cells.filter((c) => c.level > 0).length;
-  let currentStreakWeeks = 0;
-  for (let w = 11; w >= 0; w--) {
-    const weekSlice = cells.slice(w * 7, w * 7 + 7);
-    if (weekSlice.some((c) => c.level > 0)) currentStreakWeeks++;
-    else if (w < 11) break;
-  }
-
-  const levelStyles: Record<0 | 1 | 2 | 3 | 4, string> = {
-    0: 'rgba(255, 255, 255, 0.045)',
-    1: 'rgba(200, 245, 80, 0.24)',
-    2: 'rgba(200, 245, 80, 0.48)',
-    3: 'rgba(200, 245, 80, 0.74)',
-    4: '#c8f550',
-  };
-
-  return (
-    <div className="mt-4 pt-4 border-t border-slate-400/10 space-y-2.5">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <div className="text-xs font-semibold text-slate-100">Активность за 12 недель</div>
-          <div className="font-mono text-[10px] text-slate-400 mt-0.5">
-            Тренировок: <span className="text-slate-200 font-bold">{activeDaysCount}</span> · Серия:{' '}
-            <span className="text-sky-300 font-bold">{currentStreakWeeks} нед.</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-1 text-[9px] font-mono text-slate-500">
-          <span>Меньше</span>
-          {([0, 1, 2, 3, 4] as const).map((lv) => (
-            <span
-              key={lv}
-              style={{ backgroundColor: levelStyles[lv] }}
-              className="w-2.5 h-2.5 rounded-[3px] inline-block"
-            />
-          ))}
-          <span>Больше</span>
-        </div>
-      </div>
-
-      <div className="grid grid-flow-col grid-rows-7 gap-1 overflow-x-auto no-scrollbar py-0.5">
-        {cells.map((c) => (
-          <div
-            key={c.key}
-            title={`${c.key}${c.score > 0 ? ` · ${Math.round(c.score)} ед.` : ' · Отдых'}`}
-            style={{ backgroundColor: levelStyles[c.level] }}
-            className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-[4px] transition-colors"
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function RestTimerEdgeBar() {
-  const { timerSec, timerTotal, timerRunning } = useRestTimer();
-  if (!timerRunning || timerTotal <= 0) return null;
-  return (
-    <div className="absolute top-0 left-0 right-0 h-[2px] bg-white/[0.06] pointer-events-none">
-      <div
-        style={{
-          width: `${Math.max(0, Math.min(100, (timerSec / timerTotal) * 100))}%`,
-          backgroundColor: 'var(--ic-accent, #c8f550)',
-        }}
-        className="h-full transition-all duration-500 linear"
-      />
-    </div>
-  );
-}
 
 export default function App() {
   const isNativeApp = NativeiOSBridge.isNativeCapacitor();
@@ -368,7 +195,11 @@ export default function App() {
   const [cloudStatus, setCloudStatus] = useState('');
   const [livePeers, setLivePeers] = useState<LiveGymPeerState[]>([]);
   const [isInLiveRoom, setIsInLiveRoom] = useState(false);
-  const liveRoomRef = useRef<{ updateMyState: (s: LiveGymPeerState) => void; leave: () => void } | null>(null);
+  const liveRoomRef = useRef<{
+    updateMyState: (s: LiveGymPeerState) => void;
+    sendReaction: (emoji: string, label: string) => void;
+    leave: () => void;
+  } | null>(null);
   const [aiFoodLoading, setAiFoodLoading] = useState(false);
   const [pushStatus, setPushStatus] = useState('');
   const foodPhotoInputRef = useRef<HTMLInputElement | null>(null);
@@ -380,13 +211,16 @@ export default function App() {
   } | null>(null);
   const [activeRecipeSheet, setActiveRecipeSheet] = useState<MealTemplate | null>(null);
   const [recipePortionScale, setRecipePortionScale] = useState<number>(1);
-  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [isSettingsSheetOpen, setIsSettingsSheetOpen] = useState(false);
   const [isProgramsSheetOpen, setIsProgramsSheetOpen] = useState(false);
   const [programsSheetMode, setProgramsSheetMode] = useState<'list' | 'add'>('list');
   const [sheetDragRatio, setSheetDragRatio] = useState(1);
   const [snapshots, setSnapshots] = useState<SnapshotRecord[]>([]);
   const [workoutSessions, setWorkoutSessions] = useState<WorkoutSessionRecord[]>([]);
+  const [nutritionDays, setNutritionDays] = useState<NutritionDayRecord[]>([]);
+  const [selectedHistoryDate, setSelectedHistoryDate] = useState<string | null>(null);
+  const [plannerExId, setPlannerExId] = useState<ExerciseId>('bench');
+  const [plannerGoalKg, setPlannerGoalKg] = useState<number>(100);
   const [isWorkoutSummaryOpen, setIsWorkoutSummaryOpen] = useState(false);
   const [isCookMode, setIsCookMode] = useState(false);
 
@@ -456,6 +290,8 @@ export default function App() {
 
   // Kitchen & Recipes Pro States
   const [kitchenSubTab, setKitchenSubTab] = useState<KitchenSubTab>('ration');
+  const [calcSubTab, setCalcSubTab] = useState<'strength' | 'analytics'>('strength');
+  const [isWorkoutToolsOpen, setIsWorkoutToolsOpen] = useState(false);
   const [recipeSearch, setRecipeSearch] = useState('');
   const [recipeSort, setRecipeSort] = useState<RecipeSortMode>('default');
   const [favoriteRecipes, setFavoriteRecipes] = useState<string[]>(() =>
@@ -533,6 +369,7 @@ export default function App() {
         setMealTemplates(data.mealTemplates);
         setNutritionLog(data.nutritionLog);
         if (Array.isArray(data.workoutSessions)) setWorkoutSessions(data.workoutSessions);
+        if (Array.isArray(data.nutritionDays)) setNutritionDays(data.nutritionDays);
 
         const s = data.session;
         if (s.activeProgramId) setActiveProgramId(s.activeProgramId);
@@ -667,12 +504,14 @@ export default function App() {
 
   useEffect(() => {
     if (!isHydrated) return;
-    void saveKV('exercises', exercises);
+    const t = window.setTimeout(() => void saveKV('exercises', exercises), 300);
+    return () => window.clearTimeout(t);
   }, [isHydrated, exercises]);
 
   useEffect(() => {
     if (!isHydrated) return;
-    void saveKV('completedSets', completedSets);
+    const t = window.setTimeout(() => void saveKV('completedSets', completedSets), 250);
+    return () => window.clearTimeout(t);
   }, [isHydrated, completedSets]);
 
   useEffect(() => {
@@ -687,19 +526,22 @@ export default function App() {
 
   useEffect(() => {
     if (!isHydrated) return;
-    void saveKV('session', {
-      activeTab,
-      activeProgramId,
-      programPositions,
-      readinessShift,
-      recipeCategory,
-      checkedIngredients,
-      selectedFridgeItems,
-      shoppingList,
-      timerEndTime,
-      timerTotal,
-      iosSettings,
-    });
+    const t = window.setTimeout(() => {
+      void saveKV('session', {
+        activeTab,
+        activeProgramId,
+        programPositions,
+        readinessShift,
+        recipeCategory,
+        checkedIngredients,
+        selectedFridgeItems,
+        shoppingList,
+        timerEndTime,
+        timerTotal,
+        iosSettings,
+      });
+    }, 300);
+    return () => window.clearTimeout(t);
   }, [
     isHydrated,
     activeTab,
@@ -715,7 +557,7 @@ export default function App() {
     iosSettings,
   ]);
 
-  const isAnySheetOpen = isProgramsSheetOpen || Boolean(activeRecipeSheet) || isFilterSheetOpen || isSettingsSheetOpen || isCloudSheetOpen || isBarbellSheetOpen || isDaySelectorSheetOpen || Boolean(confirmDialog) || Boolean(promptDialog) || isProfileSheetOpen || isQuickAddMealOpen || isAddRecipeSheetOpen || isWorkoutSummaryOpen;
+  const isAnySheetOpen = isProgramsSheetOpen || Boolean(activeRecipeSheet) || isSettingsSheetOpen || isCloudSheetOpen || isBarbellSheetOpen || isDaySelectorSheetOpen || Boolean(confirmDialog) || Boolean(promptDialog) || isProfileSheetOpen || isQuickAddMealOpen || isAddRecipeSheetOpen || isWorkoutSummaryOpen || Boolean(selectedHistoryDate);
 
   useEffect(() => {
     if (isAnySheetOpen) setSheetDragRatio(0);
@@ -1092,6 +934,125 @@ export default function App() {
     return list;
   }, [computedDayItems, completedSets]);
 
+  const todayMuscleLoad = useMemo(() => {
+    const logged = computedDayItems
+      .map((item) => {
+        const doneSets = item.computedBlocks.flatMap((b) =>
+          Array.from({ length: b.sets })
+            .map((_, sIdx) => ({ key: `${b.blockKey}-s${sIdx}`, weightKg: b.weightKg, reps: b.reps }))
+            .filter((s) => Boolean(completedSets[s.key]))
+            .map(({ weightKg, reps }) => ({ weightKg, reps }))
+        );
+        return { name: item.name, sets: doneSets };
+      })
+      .filter((e) => e.sets.length > 0);
+    return computeMuscleLoad(logged);
+  }, [computedDayItems, completedSets]);
+
+  const weekMuscleLoad = useMemo(() => {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 7);
+    const cutoffKey = cutoff.toISOString().slice(0, 10);
+    const acc: Partial<Record<MuscleGroupId, number>> = {};
+    for (const s of workoutSessions) {
+      if (s.date < cutoffKey || !s.muscleLoad) continue;
+      for (const [m, val] of Object.entries(s.muscleLoad) as [MuscleGroupId, number][]) {
+        acc[m] = (acc[m] || 0) + (val || 0);
+      }
+    }
+    const maxV = Math.max(1, ...Object.values(acc).map((v) => v || 0));
+    const norm: Partial<Record<MuscleGroupId, number>> = {};
+    for (const [m, val] of Object.entries(acc) as [MuscleGroupId, number][]) {
+      norm[m] = Math.min(100, Math.round(((val || 0) / maxV) * 100));
+    }
+    return norm;
+  }, [workoutSessions]);
+
+  const prevNutritionDay = useMemo(() => {
+    const today = getTodayDateKey();
+    return nutritionDays.find((d) => d.date !== today && Array.isArray(d.entries) && d.entries.length > 0) || null;
+  }, [nutritionDays]);
+
+  const handleRepeatYesterdayMeals = () => {
+    if (!prevNutritionDay || prevNutritionDay.entries.length === 0) return;
+    NativeiOSBridge.haptic('medium', iosSettings.hapticsEnabled);
+    const cloned = prevNutritionDay.entries.map((m, idx) => ({
+      ...m,
+      uid: Date.now() + idx + Math.random(),
+    }));
+    setNutritionLog((prev) => ({
+      ...prev,
+      entries: [...prev.entries, ...cloned],
+    }));
+    showToast(`Скопировано ${cloned.length} блюд из ${prevNutritionDay.date} ✓`);
+  };
+
+  // Whoop-style Recovery & Strain Index (0..100%) + Oura Advisor verdict
+  const recoveryIndex = useMemo(() => {
+    const today = getTodayDateKey();
+    const lastSess = workoutSessions.find((s) => s.date !== today && s.completedSets > 0);
+    let daysSinceLast = 3;
+    if (lastSess) {
+      daysSinceLast = Math.max(
+        0,
+        Math.round((new Date(today).getTime() - new Date(lastSess.date).getTime()) / (1000 * 60 * 60 * 24))
+      );
+    }
+
+    const weekEntries = Object.entries(weekMuscleLoad) as [MuscleGroupId, number][];
+    const peakEntry = weekEntries.sort((a, b) => (b[1] || 0) - (a[1] || 0))[0];
+    const avgWeekLoad =
+      weekEntries.length > 0
+        ? weekEntries.reduce((s, [, v]) => s + (v || 0), 0) / weekEntries.length
+        : 0;
+
+    let score = 76;
+    if (daysSinceLast === 0) score -= 18;
+    else if (daysSinceLast === 1) score -= 6;
+    else if (daysSinceLast >= 2) score += 10;
+
+    score -= Math.round(avgWeekLoad * 0.16);
+
+    if (prevNutritionDay) {
+      const targetP = Math.round((nutritionLog.bodyweight || 78) * 1.8);
+      if (prevNutritionDay.p >= targetP) score += 8;
+      else if (prevNutritionDay.p < targetP * 0.65) score -= 6;
+      if (prevNutritionDay.waterMl >= 2000) score += 5;
+    }
+
+    score = Math.max(32, Math.min(98, Math.round(score)));
+
+    let verdict = 'ЦНС свежая · можно выходить на +2.5% в базе';
+    if (score < 58) {
+      verdict = peakEntry
+        ? `${MUSCLE_LABELS_RU[peakEntry[0]] || peakEntry[0]} под нагрузкой (${peakEntry[1]}%) · лучше сбавить -2.5%`
+        : 'Накоплена усталость · работай в спокойном темпе';
+    } else if (score < 78) {
+      verdict = peakEntry && peakEntry[1] >= 80
+        ? `${MUSCLE_LABELS_RU[peakEntry[0]] || peakEntry[0]} загружены на ${peakEntry[1]}% · держи плановый вес`
+        : 'Оптимальный тонус · работай чётко по плану';
+    }
+
+    return { score, verdict };
+  }, [workoutSessions, weekMuscleLoad, prevNutritionDay, nutritionLog.bodyweight]);
+
+  const dayTonnage = useMemo(() => {
+    let sum = 0;
+    for (const s of flatDaySets) {
+      if (s.done && s.weightKg) sum += s.weightKg * s.reps;
+    }
+    return Math.round(sum);
+  }, [flatDaySets]);
+
+  // Post-workout AI Debrief (peak muscle, volume delta, estimated recovery hours)
+  const workoutDebrief = useMemo(() => {
+    const entries = Object.entries(todayMuscleLoad) as [MuscleGroupId, number][];
+    const peak = entries.sort((a, b) => (b[1] || 0) - (a[1] || 0))[0];
+    const peakName = peak ? MUSCLE_LABELS_RU[peak[0]] || peak[0] : 'Общий тонус';
+    const recoveryHours = dayTonnage >= 6500 ? '48–72 ч' : dayTonnage >= 3000 ? '36–48 ч' : '24–36 ч';
+    return { peakName, peakPct: peak ? peak[1] : 0, recoveryHours };
+  }, [todayMuscleLoad, dayTonnage]);
+
   const nextPendingSet = useMemo(() => flatDaySets.find((s) => !s.done) || null, [flatDaySets]);
   const completedSetsCount = useMemo(() => flatDaySets.filter((s) => s.done).length, [flatDaySets]);
 
@@ -1164,8 +1125,11 @@ export default function App() {
     setRecentBurstSetKey(key);
     setTimeout(() => setRecentBurstSetKey((prev) => (prev === key ? null : prev)), 600);
     if (willCompleteAll) {
+      NativeiOSBridge.playPrPulse(iosSettings.soundEffectsEnabled);
       spawnCelebrationBurst();
       setTimeout(() => setIsWorkoutSummaryOpen(true), 650);
+    } else {
+      NativeiOSBridge.playSetSnap(iosSettings.soundEffectsEnabled);
     }
   };
 
@@ -1675,14 +1639,6 @@ export default function App() {
     );
   };
 
-  const dayTonnage = useMemo(() => {
-    let sum = 0;
-    for (const s of flatDaySets) {
-      if (s.done && s.weightKg) sum += s.weightKg * s.reps;
-    }
-    return Math.round(sum);
-  }, [flatDaySets]);
-
   const prevSessionTonnage = useMemo(() => {
     const today = getTodayDateKey();
     const prev = workoutSessions.find((s) => s.date !== today && s.tonnageKg > 0);
@@ -1984,6 +1940,10 @@ export default function App() {
         updatedAt: new Date().toISOString(),
       };
       void saveNutritionDay(dayRecord);
+      setNutritionDays((prev) => {
+        const filtered = prev.filter((d) => d.date !== dayRecord.date);
+        return [dayRecord, ...filtered].sort((a, b) => b.date.localeCompare(a.date));
+      });
       if (isCloudConfigured()) {
         void syncNutritionDayReliable(dayRecord);
       }
@@ -1991,7 +1951,6 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [isHydrated, nutritionLog, nutritionTotals, waterMl]);
   const targetProtein = Math.round((nutritionLog.bodyweight || 78) * 2.0);
-  const bench1RM = exercises.find((e) => e.id === 'bench')?.oneRepMax || 0;
 
   const sbdTotal = useMemo(() => {
     const s = exercises.find((e) => e.id === 'squat')?.oneRepMax || 0;
@@ -2057,9 +2016,15 @@ export default function App() {
         reps: nextPendingSet?.reps || 0,
         completedSets: completedSetsCount,
         totalSets: flatDaySets.length,
+        tonnageKg: dayTonnage,
         updatedAt: Date.now(),
       },
-      (peers) => setLivePeers(peers)
+      (peers) => setLivePeers(peers),
+      (reaction: LiveGymReaction) => {
+        NativeiOSBridge.haptic('heavy', iosSettings.hapticsEnabled);
+        NativeiOSBridge.playPrPulse(iosSettings.soundEffectsEnabled);
+        showToast(`${reaction.emoji} ${reaction.from}: ${reaction.label || 'Мощно!'}`, 4000);
+      }
     );
     if (!room) {
       setCloudStatus('Добавь VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY в Vercel.');
@@ -2080,6 +2045,7 @@ export default function App() {
       reps: nextPendingSet?.reps || 0,
       completedSets: completedSetsCount,
       totalSets: flatDaySets.length,
+      tonnageKg: dayTonnage,
       updatedAt: Date.now(),
     });
   }, [
@@ -2090,6 +2056,7 @@ export default function App() {
     nextPendingSet?.reps,
     completedSetsCount,
     flatDaySets.length,
+    dayTonnage,
   ]);
 
   const handleShareWorkout = async () => {
@@ -2097,175 +2064,15 @@ export default function App() {
     const titleText = isFreestyleMode ? 'Свободная тренировка' : `${activeProgram.title} · ${dayObj.title}`;
 
     try {
-      const canvas = document.createElement('canvas');
-      canvas.width = 1080;
-      canvas.height = 1350;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('no-ctx');
-
-      // Matte Carbon Background (Whoop / Linear aesthetic)
-      const baseBg = visualTheme === 'ios-dark' ? '#000000' : '#090a0c';
-      ctx.fillStyle = baseBg;
-      ctx.fillRect(0, 0, 1080, 1350);
-
-      // Subtle top anodized light sheen
-      const topSheen = ctx.createRadialGradient(540, 0, 40, 540, 0, 760);
-      topSheen.addColorStop(0, 'rgba(255, 255, 255, 0.045)');
-      topSheen.addColorStop(1, 'rgba(255, 255, 255, 0)');
-      ctx.fillStyle = topSheen;
-      ctx.fillRect(0, 0, 1080, 1350);
-
-      const presetObj = ACCENT_PRESETS.find((p) => p.id === accentPreset);
-      const accentHex = presetObj ? presetObj.hex : '#C8F550';
-
-      // Crisp 1.5px hairline frame
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.roundRect(44, 44, 992, 1262, 36);
-      ctx.stroke();
-
-      // Top Volt Lime accent pill indicator
-      ctx.fillStyle = accentHex;
-      ctx.beginPath();
-      ctx.roundRect(90, 98, 14, 28, 4);
-      ctx.fill();
-
-      // Header
-      ctx.fillStyle = '#F7F7F9';
-      ctx.font = '800 26px "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
-      ctx.fillText('IRON CORE', 118, 122);
-
-      ctx.fillStyle = '#848792';
-      ctx.font = '600 22px "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
-      ctx.textAlign = 'right';
-      ctx.fillText(new Date().toLocaleDateString('ru-RU'), 990, 122);
-      ctx.textAlign = 'left';
-
-      // Program & Day Title
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = '800 44px "Plus Jakarta Sans", system-ui, -apple-system, sans-serif';
-      const shortTitle = titleText.length > 34 ? `${titleText.slice(0, 34)}…` : titleText;
-      ctx.fillText(shortTitle, 90, 196);
-
-      // Stats Cards Row
-      const topSet = flatDaySets
-        .filter((s) => s.weightKg && s.weightKg > 0)
-        .sort((a, b) => (b.weightKg || 0) - (a.weightKg || 0))[0];
-      const pctDone = flatDaySets.length > 0 ? Math.round((completedSetsCount / flatDaySets.length) * 100) : 0;
-
-      const drawStatBox = (x: number, y: number, w: number, h: number, label: string, val: string, color: string) => {
-        const cardGrad = ctx.createLinearGradient(x, y, x, y + h);
-        cardGrad.addColorStop(0, '#17181d');
-        cardGrad.addColorStop(1, '#111216');
-        ctx.fillStyle = cardGrad;
-        ctx.beginPath();
-        ctx.roundRect(x, y, w, h, 24);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.075)';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-
-        ctx.fillStyle = '#848792';
-        ctx.font = '700 18px "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
-        ctx.fillText(label, x + 28, y + 46);
-
-        ctx.fillStyle = color;
-        ctx.font = '800 46px "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
-        ctx.fillText(val, x + 28, y + 110);
-      };
-
-      drawStatBox(90, 240, 438, 146, 'ТОННАЖ ДНЯ', `${dayTonnage} КГ`, '#FFFFFF');
-      drawStatBox(552, 240, 438, 146, 'ВЫПОЛНЕНО', `${completedSetsCount}/${flatDaySets.length} (${pctDone}%)`, accentHex);
-
-      // Razor-thin progress bar
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
-      ctx.beginPath();
-      ctx.roundRect(90, 412, 900, 8, 4);
-      ctx.fill();
-      ctx.fillStyle = accentHex;
-      ctx.beginPath();
-      ctx.roundRect(90, 412, Math.max(8, (900 * pctDone) / 100), 8, 4);
-      ctx.fill();
-
-      // Top Set Highlight
-      if (topSet && topSet.weightKg) {
-        ctx.fillStyle = '#141519';
-        ctx.beginPath();
-        ctx.roundRect(90, 448, 900, 96, 20);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-
-        ctx.fillStyle = accentHex;
-        ctx.beginPath();
-        ctx.roundRect(90, 448, 6, 96, 3);
-        ctx.fill();
-
-        ctx.fillStyle = '#848792';
-        ctx.font = '700 18px "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
-        ctx.fillText('ТОП-ПОДХОД', 120, 486);
-
-        ctx.fillStyle = '#F7F7F9';
-        ctx.font = '700 28px "Plus Jakarta Sans", system-ui, -apple-system, sans-serif';
-        ctx.fillText(
-          `${topSet.exerciseName.slice(0, 28)} · ${topSet.weightKg} кг × ${topSet.reps}`,
-          120,
-          524
-        );
-      }
-
-      // Exercise List
-      let curY = topSet && topSet.weightKg ? 600 : 495;
-      ctx.fillStyle = '#848792';
-      ctx.font = '700 19px "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
-      ctx.fillText('ВЫПОЛНЕННАЯ РАБОТА', 90, curY);
-      curY += 38;
-
-      computedDayItems.slice(0, 7).forEach((it, i) => {
-        const desc = it.computedBlocks
-          .map((b) => (b.weightKg ? `${b.weightKg} кг × ${b.reps} × ${b.sets}` : `${b.reps} × ${b.sets}`))
-          .join('  |  ');
-
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.028)';
-        ctx.beginPath();
-        ctx.roundRect(90, curY - 30, 900, 72, 16);
-        ctx.fill();
-
-        ctx.fillStyle = '#F7F7F9';
-        ctx.font = '600 25px "Plus Jakarta Sans", system-ui, -apple-system, sans-serif';
-        const nm = `${i + 1}. ${it.name}`;
-        ctx.fillText(nm.length > 32 ? `${nm.slice(0, 32)}…` : nm, 116, curY + 13);
-
-        ctx.textAlign = 'right';
-        ctx.fillStyle = i === 0 ? accentHex : '#D4D4D8';
-        ctx.font = '700 23px "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
-        ctx.fillText(desc.slice(0, 28), 964, curY + 13);
-        ctx.textAlign = 'left';
-
-        curY += 84;
+      const blob = await generateWorkoutSummaryBlob({
+        titleText,
+        visualTheme,
+        accentPreset,
+        dayTonnage,
+        completedSetsCount,
+        flatDaySets,
+        computedDayItems,
       });
-
-      // Hairline divider above footer
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(90, 1218);
-      ctx.lineTo(990, 1218);
-      ctx.stroke();
-
-      // Footer
-      ctx.fillStyle = '#848792';
-      ctx.font = '600 19px "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
-      ctx.fillText('iron-core-sandy.vercel.app', 90, 1265);
-      ctx.textAlign = 'right';
-      ctx.fillStyle = accentHex;
-      ctx.font = '700 20px "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
-      ctx.fillText('IRON CORE · MATTE CARBON', 990, 1265);
-      ctx.textAlign = 'left';
-
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
       if (blob) {
         const file = new File([blob], `ironcore_summary_${Date.now()}.png`, { type: 'image/png' });
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -2290,7 +2097,6 @@ export default function App() {
       }
     } catch {}
 
-    // Text fallback
     const lines = [
       `IRON CORE // ${titleText}`,
       `Тоннаж: ${dayTonnage} кг (${completedSetsCount}/${flatDaySets.length} подх.)`,
@@ -2633,32 +2439,55 @@ export default function App() {
                 <FlameIcon className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Свободная</span>
               </button>
+
+              <button
+                onClick={() => {
+                  NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
+                  NativeiOSBridge.playTick(iosSettings.soundEffectsEnabled);
+                  setIsWorkoutToolsOpen((v) => !v);
+                }}
+                className={`shrink-0 w-10 h-10 rounded-2xl border flex items-center justify-center active:scale-95 transition-all ${
+                  isWorkoutToolsOpen
+                    ? 'bg-sky-400 text-slate-950 border-transparent'
+                    : 'slate-pill text-slate-300 border-white/10'
+                }`}
+                title="Инструменты (HUD-видео, Техника, Итоги)"
+              >
+                <MoreHorizontalIcon className="w-4 h-4" />
+              </button>
             </div>
           )}
 
-          {/* Row 3 (Workout tab only): Minimalist 3-Tool Strip (3D is inside barbell cards) */}
-          {activeTab === 'workout' && (
-            <div className="grid grid-cols-3 gap-1.5">
+          {/* Expandable 3-Tool Strip (hidden by default for maximum vertical breathing room on iPhone) */}
+          {activeTab === 'workout' && isWorkoutToolsOpen && (
+            <div className="grid grid-cols-3 gap-1.5 animate-cascade">
               <button
-                onClick={() => openHudRecorder()}
-                className="py-1.5 px-2 rounded-xl slate-pill text-slate-300 hover:text-white text-[11px] font-medium flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                onClick={() => {
+                  setIsWorkoutToolsOpen(false);
+                  openHudRecorder();
+                }}
+                className="py-2 px-2 rounded-xl slate-pill text-slate-200 hover:text-white text-[11px] font-medium flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
               >
                 <VideoIcon className="w-3.5 h-3.5 shrink-0" />
                 <span>HUD-видео</span>
               </button>
               <button
                 onClick={() => {
+                  setIsWorkoutToolsOpen(false);
                   NativeiOSBridge.haptic('medium', iosSettings.hapticsEnabled);
                   setIsFormCheckOpen(true);
                 }}
-                className="py-1.5 px-2 rounded-xl slate-pill text-slate-300 hover:text-white text-[11px] font-medium flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                className="py-2 px-2 rounded-xl slate-pill text-slate-200 hover:text-white text-[11px] font-medium flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
               >
                 <CameraIcon className="w-3.5 h-3.5 shrink-0" />
                 <span>Техника</span>
               </button>
               <button
-                onClick={handleShareWorkout}
-                className="py-1.5 px-2 rounded-xl slate-pill text-slate-300 hover:text-white text-[11px] font-medium flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                onClick={() => {
+                  setIsWorkoutToolsOpen(false);
+                  void handleShareWorkout();
+                }}
+                className="py-2 px-2 rounded-xl slate-pill text-slate-200 hover:text-white text-[11px] font-medium flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
               >
                 <ShareIcon className="w-3.5 h-3.5 shrink-0" />
                 <span>Итоги</span>
@@ -2824,40 +2653,49 @@ export default function App() {
               </div>
             )}
 
-            {/* Quick Readiness Check-in (1-tap auto-regulation) */}
-            {!isFreestyleMode && (
-              <div className="animate-cascade flex items-center justify-between gap-2 px-1" style={{ animationDelay: '35ms' }}>
-                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 shrink-0">
-                  Готовность
-                </span>
-                <div className="grid grid-cols-3 gap-1.5 flex-1 max-w-[280px]">
-                  {(
-                    [
-                      { label: 'Разбит', sub: '-2.5%', val: -2.5 },
-                      { label: 'Норм', sub: '0%', val: 0 },
-                      { label: 'Заряжен', sub: '+2.5%', val: 2.5 },
-                    ] as const
-                  ).map((opt) => {
-                    const active = readinessShift === opt.val;
-                    return (
-                      <button
-                        key={opt.val}
-                        onClick={() => {
-                          NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
-                          setReadinessShift(opt.val);
-                        }}
-                        className={`py-1.5 px-2 rounded-xl text-[11px] font-semibold transition-all active:scale-95 flex items-center justify-center gap-1 ${
-                          active
-                            ? 'bg-sky-400 text-slate-950 font-bold'
-                            : 'slate-pill text-slate-400 hover:text-slate-100'
-                        }`}
-                      >
-                        <span>{opt.label}</span>
-                      </button>
-                    );
-                  })}
+            {/* Compact Unified Recovery + Readiness Bar (auto-hides once workout starts) */}
+            {completedSetsCount === 0 && (
+            <div className="animate-cascade slate-card rounded-2xl px-3.5 py-2.5 space-y-2" style={{ animationDelay: '25ms' }}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1 flex items-center gap-2">
+                  <span className="font-mono tabular text-sm font-extrabold text-sky-300 shrink-0">
+                    {recoveryIndex.score}%
+                  </span>
+                  <span className="text-[11px] text-slate-300 truncate">{recoveryIndex.verdict}</span>
                 </div>
+                {!isFreestyleMode && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    {(
+                      [
+                        { label: '-2.5%', val: -2.5, title: 'Разбит (-2.5%)' },
+                        { label: '0%', val: 0, title: 'Норм (0%)' },
+                        { label: '+2.5%', val: 2.5, title: 'Заряжен (+2.5%)' },
+                      ] as const
+                    ).map((opt) => {
+                      const active = readinessShift === opt.val;
+                      return (
+                        <button
+                          key={opt.val}
+                          title={opt.title}
+                          onClick={() => {
+                            NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
+                            NativeiOSBridge.playTick(iosSettings.soundEffectsEnabled);
+                            setReadinessShift(opt.val);
+                          }}
+                          className={`px-2 py-1 rounded-lg font-mono text-[10px] font-bold transition-all active:scale-90 ${
+                            active
+                              ? 'bg-sky-400 text-slate-950'
+                              : 'bg-white/[0.04] text-slate-400 hover:text-slate-100'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
+            </div>
             )}
 
             {/* Main Workout Card */}
@@ -3761,16 +3599,28 @@ export default function App() {
                           <span className="text-sm font-normal text-slate-400">/ {targetKcal} ккал</span>
                         </div>
                       </div>
-                      <button
-                        onClick={() => {
-                          NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
-                          setIsQuickAddMealOpen(true);
-                        }}
-                        className="px-3.5 py-2 rounded-xl bg-teal-400 hover:bg-teal-300 text-slate-950 text-xs font-extrabold inline-flex items-center gap-1 shadow-md shadow-teal-400/20 active:scale-95 transition-transform"
-                      >
-                        <PlusIcon className="w-3.5 h-3.5" />
-                        <span>Быстро</span>
-                      </button>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {prevNutritionDay && (
+                          <button
+                            onClick={handleRepeatYesterdayMeals}
+                            className="px-2.5 py-2 rounded-xl slate-well text-[11px] font-semibold text-slate-200 hover:text-white inline-flex items-center gap-1 active:scale-95 transition-transform"
+                            title={`Скопировать рацион за ${prevNutritionDay.date}`}
+                          >
+                            <RotateCcwIcon className="w-3.5 h-3.5 text-sky-300" />
+                            <span>Вчера</span>
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
+                            setIsQuickAddMealOpen(true);
+                          }}
+                          className="px-3.5 py-2 rounded-xl bg-teal-400 hover:bg-teal-300 text-slate-950 text-xs font-extrabold inline-flex items-center gap-1 shadow-md shadow-teal-400/20 active:scale-95 transition-transform"
+                        >
+                          <PlusIcon className="w-3.5 h-3.5" />
+                          <span>Быстро</span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
@@ -4338,183 +4188,326 @@ export default function App() {
           );
         })()}
 
-        {/* ================= TAB 4: КАЛЬКУЛЯТОР 1ПМ, DOTS & БЭКАП ================= */}
+        {/* ================= TAB 4: СИЛА & АНАЛИТИКА (2 КОМПАКТНЫХ СЕГМЕНТА) ================= */}
         {activeTab === 'calc' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mt-2">
-            <div
-              className="lg:col-span-7 animate-cascade slate-card rounded-[26px] p-5"
-              style={{ animationDelay: '50ms' }}
-            >
-              <h2 className="text-sm font-semibold text-slate-50">Твои 1ПМ: Жим, Присед, Становая</h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Любое изменение мгновенно пересчитывает веса во всех программах.
-              </p>
-              <div className="mt-4 space-y-3">
-                {exercises.map((ex) => (
-                  <div key={ex.id} className="p-3.5 rounded-2xl slate-well">
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        <div className="text-sm font-medium text-slate-50">{ex.name}</div>
-                        <div className="text-[11px] font-mono text-slate-400">
-                          Гриф {ex.barbellWeight} кг · Шаг 2.5 кг
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleUpdate1RM(ex.id, ex.oneRepMax - 2.5)}
-                          className="w-9 h-9 rounded-xl bg-slate-900 font-mono text-xs text-slate-200 active:scale-90 transition-transform"
-                        >
-                          -2.5
-                        </button>
-                        <div className="flex items-baseline bg-slate-950/90 border border-slate-400/15 rounded-xl px-3 py-1.5">
-                          <input
-                            type="number"
-                            step="2.5"
-                            value={ex.oneRepMax || ''}
-                            onChange={(e) => handleUpdate1RM(ex.id, e.target.value)}
-                            className="w-16 text-center bg-transparent font-mono tabular text-base font-bold text-violet-300 focus:outline-none"
-                          />
-                          <span className="text-xs text-slate-400 font-mono">кг</span>
-                        </div>
-                        <button
-                          onClick={() => handleUpdate1RM(ex.id, ex.oneRepMax + 2.5)}
-                          className="w-9 h-9 rounded-xl bg-slate-900 font-mono text-xs text-slate-200 active:scale-90 transition-transform"
-                        >
-                          +2.5
-                        </button>
-                      </div>
-                    </div>
-                    <Sparkline1RM history={ex.history} currentWeight={ex.oneRepMax} id={ex.id} />
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 mt-5 pt-4 border-t border-slate-400/10">
-                <div className="p-3.5 rounded-2xl slate-well">
-                  <div className="text-[10px] uppercase text-slate-400">Сумма троеборья (SBD)</div>
-                  <div className="font-mono tabular text-xl font-bold text-slate-50 mt-1">
-                    <AnimatedNumber value={sbdTotal} /> кг
-                  </div>
+          <div className="max-w-3xl mx-auto space-y-4 mt-1">
+            {/* iOS Segmented Control: Сила / Аналитика */}
+            <div className="animate-cascade slate-card rounded-2xl p-1.5" style={{ animationDelay: '20ms' }}>
+              <div className="relative grid grid-cols-2">
+                <div
+                  style={{
+                    width: '50%',
+                    transform: `translateX(${calcSubTab === 'strength' ? 0 : 100}%)`,
+                  }}
+                  className="magnetic-pill absolute inset-y-0 left-0 px-0.5 pointer-events-none"
+                >
+                  <div className="w-full h-full rounded-xl bg-sky-400 shadow-lg shadow-sky-400/20" />
                 </div>
-                <div className="p-3.5 rounded-2xl slate-well">
-                  <div className="text-[10px] uppercase text-slate-400">Коэффициент DOTS</div>
-                  <div className="font-mono tabular text-xl font-bold text-violet-300 mt-1">
-                    <AnimatedNumber value={dotsScore} decimals={1} />
-                  </div>
-                </div>
+                {(
+                  [
+                    { id: 'strength', label: 'Сила и 1ПМ' },
+                    { id: 'analytics', label: 'Аналитика и 3D' },
+                  ] as const
+                ).map((st) => {
+                  const active = calcSubTab === st.id;
+                  return (
+                    <button
+                      key={st.id}
+                      onClick={() => {
+                        NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
+                        NativeiOSBridge.playTick(iosSettings.soundEffectsEnabled);
+                        setCalcSubTab(st.id);
+                      }}
+                      className={`relative z-10 py-2 rounded-xl text-xs font-bold transition-colors ${
+                        active ? 'text-slate-950' : 'text-slate-400 hover:text-slate-100'
+                      }`}
+                    >
+                      {st.label}
+                    </button>
+                  );
+                })}
               </div>
-
-              <StreakHeatmap sessions={workoutSessions} />
             </div>
 
-            <div className="lg:col-span-5 space-y-4 animate-cascade" style={{ animationDelay: '110ms' }}>
-              <div className="slate-card rounded-[26px] p-5">
-                <h3 className="text-sm font-semibold text-slate-50">Калькулятор e1RM (Эпли / Бжицки)</h3>
-                <div className="mt-3">
-                  <select
-                    value={calcExId}
-                    onChange={(e) => setCalcExId(e.target.value as ExerciseId)}
-                    className="w-full slate-well rounded-xl px-3 py-2.5 text-xs text-slate-100 focus:outline-none"
-                  >
+            {calcSubTab === 'strength' ? (
+              <div className="space-y-4 animate-cascade" style={{ animationDelay: '40ms' }}>
+                <div className="slate-card rounded-[26px] p-5">
+                  <h2 className="text-sm font-semibold text-slate-50">Твои 1ПМ: Жим, Присед, Становая</h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Любое изменение мгновенно пересчитывает веса во всех программах.
+                  </p>
+                  <div className="mt-4 space-y-3">
                     {exercises.map((ex) => (
-                      <option key={ex.id} value={ex.id} className="bg-slate-950">
-                        {ex.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-3 mt-3">
-                  <div className="slate-well rounded-xl p-3">
-                    <label className="text-[11px] text-slate-400 block">Вес (кг)</label>
-                    <input
-                      type="number"
-                      step="2.5"
-                      value={calcWeight}
-                      onChange={(e) => setCalcWeight(parseFloat(e.target.value) || 0)}
-                      className="w-full mt-1 bg-transparent font-mono tabular text-lg font-bold text-slate-50 focus:outline-none"
-                    />
-                  </div>
-                  <div className="slate-well rounded-xl p-3">
-                    <label className="text-[11px] text-slate-400 block">Повторения</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="20"
-                      value={calcReps}
-                      onChange={(e) => setCalcReps(parseInt(e.target.value, 10) || 1)}
-                      className="w-full mt-1 bg-transparent font-mono tabular text-lg font-bold text-slate-50 focus:outline-none"
-                    />
-                  </div>
-                </div>
-                <div className="mt-4 p-4 rounded-2xl slate-well flex items-center justify-between">
-                  <div>
-                    <div className="text-[11px] text-slate-400">Расчетный 1ПМ:</div>
-                    <div className="font-mono tabular text-2xl font-bold text-violet-300">
-                      <AnimatedNumber value={calculateE1RM(calcWeight, calcReps)} decimals={1} /> кг
-                    </div>
-                  </div>
-                  <button
-                    onClick={() =>
-                      handleUpdate1RM(calcExId, roundToStep(calculateE1RM(calcWeight, calcReps), 2.5, 20))
-                    }
-                    className="px-3.5 py-2.5 rounded-xl bg-violet-400 hover:bg-violet-300 text-slate-950 text-xs font-extrabold active:scale-90 transition-transform"
-                  >
-                    В базу 1ПМ
-                  </button>
-                </div>
-              </div>
-
-              <div className="slate-card rounded-[26px] p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-300">IndexedDB · Бэкап JSON:</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleExportBackup}
-                      className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-950 text-xs font-semibold active:scale-95"
-                    >
-                      Экспорт
-                    </button>
-                    <button
-                      onClick={() => importJsonRef.current?.click()}
-                      className="px-3 py-1.5 rounded-xl bg-slate-900 text-slate-200 text-xs active:scale-95"
-                    >
-                      Импорт
-                    </button>
-                    <input
-                      ref={importJsonRef}
-                      type="file"
-                      accept="application/json"
-                      className="hidden"
-                      onChange={(e) => void handleImportBackup(e.target.files?.[0])}
-                    />
-                  </div>
-                </div>
-
-                {snapshots.length > 0 && (
-                  <div className="pt-2.5 border-t border-slate-400/10">
-                    <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1.5">
-                      Автоснимки базы ({snapshots.length}):
-                    </div>
-                    <div className="space-y-1.5 max-h-28 overflow-y-auto">
-                      {snapshots.slice(0, 3).map((snap) => (
-                        <div
-                          key={snap.id}
-                          className="flex items-center justify-between px-2.5 py-1.5 rounded-lg slate-well text-[11px]"
-                        >
-                          <span className="text-slate-300 truncate pr-2">{snap.reason}</span>
-                          <button
-                            onClick={() => void applyBackupPayload(snap.payload, 'Откат к снимку')}
-                            className="text-violet-300 hover:underline font-mono shrink-0"
-                          >
-                            Откатить
-                          </button>
+                      <div key={ex.id} className="p-3.5 rounded-2xl slate-well">
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <div className="text-sm font-medium text-slate-50">{ex.name}</div>
+                            <div className="text-[11px] font-mono text-slate-400">
+                              Гриф {ex.barbellWeight} кг · Шаг 2.5 кг
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleUpdate1RM(ex.id, ex.oneRepMax - 2.5)}
+                              className="w-9 h-9 rounded-xl bg-slate-900 font-mono text-xs text-slate-200 active:scale-90 transition-transform"
+                            >
+                              -2.5
+                            </button>
+                            <div className="flex items-baseline bg-slate-950/90 border border-slate-400/15 rounded-xl px-3 py-1.5">
+                              <input
+                                type="number"
+                                step="2.5"
+                                value={ex.oneRepMax || ''}
+                                onChange={(e) => handleUpdate1RM(ex.id, e.target.value)}
+                                className="w-16 text-center bg-transparent font-mono tabular text-base font-bold text-violet-300 focus:outline-none"
+                              />
+                              <span className="text-xs text-slate-400 font-mono">кг</span>
+                            </div>
+                            <button
+                              onClick={() => handleUpdate1RM(ex.id, ex.oneRepMax + 2.5)}
+                              className="w-9 h-9 rounded-xl bg-slate-900 font-mono text-xs text-slate-200 active:scale-90 transition-transform"
+                            >
+                              +2.5
+                            </button>
+                          </div>
                         </div>
-                      ))}
+                        <Sparkline1RM history={ex.history} currentWeight={ex.oneRepMax} id={ex.id} />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-400/10">
+                    <div className="p-3.5 rounded-2xl slate-well">
+                      <div className="text-[10px] uppercase text-slate-400">Сумма троеборья (SBD)</div>
+                      <div className="font-mono tabular text-xl font-bold text-slate-50 mt-1">
+                        <AnimatedNumber value={sbdTotal} /> кг
+                      </div>
+                    </div>
+                    <div className="p-3.5 rounded-2xl slate-well">
+                      <div className="text-[10px] uppercase text-slate-400">Коэффициент DOTS</div>
+                      <div className="font-mono tabular text-xl font-bold text-violet-300 mt-1">
+                        <AnimatedNumber value={dotsScore} decimals={1} />
+                      </div>
                     </div>
                   </div>
-                )}
+                </div>
+
+                {/* PR Forecast & 3-Attempt Meet Planner */}
+                {(() => {
+                  const targetEx = exercises.find((e) => e.id === plannerExId) || exercises[0];
+                  const cur1RM = targetEx?.oneRepMax || 0;
+                  const hist = targetEx?.history || [];
+                  let weeklyRate = 1.25;
+                  if (hist.length >= 2) {
+                    const first = hist[0];
+                    const last = hist[hist.length - 1];
+                    const daysDiff = Math.max(
+                      7,
+                      (new Date(last.date).getTime() - new Date(first.date).getTime()) / (1000 * 60 * 60 * 24)
+                    );
+                    const gain = last.weight - first.weight;
+                    if (gain > 0) {
+                      weeklyRate = Math.max(0.5, Math.min(5, (gain / daysDiff) * 7));
+                    }
+                  }
+                  const kgLeft = Math.max(0, plannerGoalKg - cur1RM);
+                  const weeksEst = kgLeft > 0 ? Math.ceil(kgLeft / weeklyRate) : 0;
+                  const attempts = [
+                    { label: '1-я · Уверенная', pct: 92, kg: roundToStep(cur1RM * 0.92, 2.5, 20) },
+                    { label: '2-я · Рабочий макс', pct: 97, kg: roundToStep(cur1RM * 0.97, 2.5, 20) },
+                    { label: '3-я · Новый PR', pct: 102, kg: roundToStep(Math.max(cur1RM * 1.02, cur1RM + 2.5), 2.5, 20) },
+                  ];
+                  return (
+                    <div className="slate-card rounded-[26px] p-5 space-y-3.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <div className="text-[10px] font-mono uppercase tracking-widest text-sky-300 font-bold">
+                            Прогноз и проходка
+                          </div>
+                          <h3 className="text-sm font-semibold text-slate-50 mt-0.5">План на рекорд</h3>
+                        </div>
+                        <select
+                          value={plannerExId}
+                          onChange={(e) => {
+                            const nextId = e.target.value as ExerciseId;
+                            setPlannerExId(nextId);
+                            const found = exercises.find((x) => x.id === nextId);
+                            if (found) setPlannerGoalKg(Math.ceil((found.oneRepMax + 10) / 5) * 5);
+                          }}
+                          className="slate-well rounded-xl px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none"
+                        >
+                          {exercises.map((ex) => (
+                            <option key={ex.id} value={ex.id} className="bg-slate-950">
+                              {ex.shortName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="p-3 rounded-2xl slate-well flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wider text-slate-400">Цель (кг)</div>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <input
+                              type="number"
+                              step="2.5"
+                              value={plannerGoalKg || ''}
+                              onChange={(e) => setPlannerGoalKg(parseFloat(e.target.value) || 0)}
+                              className="w-16 bg-slate-950/80 border border-slate-400/15 rounded-lg px-2 py-1 font-mono text-sm font-bold text-sky-300 focus:outline-none"
+                            />
+                            <span className="font-mono text-xs text-slate-400">кг</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[10px] uppercase tracking-wider text-slate-400">Ориентир</div>
+                          <div className="font-mono text-sm font-extrabold text-slate-50 mt-1">
+                            {kgLeft <= 0 ? 'Цель достигнута ✓' : `~${weeksEst} нед.`}
+                          </div>
+                          {kgLeft > 0 && (
+                            <div className="font-mono text-[10px] text-slate-400">
+                              +{kgLeft.toFixed(1)} кг · ~{weeklyRate.toFixed(1)} кг/нед
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                          Раскладка 3 попыток проходки:
+                        </div>
+                        {attempts.map((att, idx) => {
+                          const { plates } = calculatePlatesPerSide(att.kg, targetEx?.barbellWeight || 20);
+                          return (
+                            <div
+                              key={att.pct}
+                              className="px-3 py-2 rounded-xl slate-well flex items-center justify-between gap-2"
+                            >
+                              <div className="min-w-0">
+                                <div className="text-xs font-semibold text-slate-100">{att.label}</div>
+                                <div className="font-mono text-[10px] text-slate-400">
+                                  {att.pct}% · блины: {plates.map((p) => p.label).join('+') || 'гриф'}
+                                </div>
+                              </div>
+                              <span
+                                className={`font-mono tabular text-sm font-extrabold shrink-0 ${
+                                  idx === 2 ? 'text-sky-300' : 'text-slate-100'
+                                }`}
+                              >
+                                {att.kg} кг
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <div className="slate-card rounded-[26px] p-5">
+                  <h3 className="text-sm font-semibold text-slate-50">Калькулятор e1RM (Эпли / Бжицки)</h3>
+                  <div className="mt-3">
+                    <select
+                      value={calcExId}
+                      onChange={(e) => setCalcExId(e.target.value as ExerciseId)}
+                      className="w-full slate-well rounded-xl px-3 py-2.5 text-xs text-slate-100 focus:outline-none"
+                    >
+                      {exercises.map((ex) => (
+                        <option key={ex.id} value={ex.id} className="bg-slate-950">
+                          {ex.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <div className="slate-well rounded-xl p-3">
+                      <label className="text-[11px] text-slate-400 block">Вес (кг)</label>
+                      <input
+                        type="number"
+                        step="2.5"
+                        value={calcWeight}
+                        onChange={(e) => setCalcWeight(parseFloat(e.target.value) || 0)}
+                        className="w-full mt-1 bg-transparent font-mono tabular text-lg font-bold text-slate-50 focus:outline-none"
+                      />
+                    </div>
+                    <div className="slate-well rounded-xl p-3">
+                      <label className="text-[11px] text-slate-400 block">Повторения</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={calcReps}
+                        onChange={(e) => setCalcReps(parseInt(e.target.value, 10) || 1)}
+                        className="w-full mt-1 bg-transparent font-mono tabular text-lg font-bold text-slate-50 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4 p-4 rounded-2xl slate-well flex items-center justify-between">
+                    <div>
+                      <div className="text-[11px] text-slate-400">Расчетный 1ПМ:</div>
+                      <div className="font-mono tabular text-2xl font-bold text-violet-300">
+                        <AnimatedNumber value={calculateE1RM(calcWeight, calcReps)} decimals={1} /> кг
+                      </div>
+                    </div>
+                    <button
+                      onClick={() =>
+                        handleUpdate1RM(calcExId, roundToStep(calculateE1RM(calcWeight, calcReps), 2.5, 20))
+                      }
+                      className="px-3.5 py-2.5 rounded-xl bg-violet-400 hover:bg-violet-300 text-slate-950 text-xs font-extrabold active:scale-90 transition-transform"
+                    >
+                      В базу 1ПМ
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-4 animate-cascade" style={{ animationDelay: '40ms' }}>
+                {/* Holographic Athlete Pass with iPhone Gyroscope (Lazy) */}
+                <ErrorBoundary moduleName="Карта атлета" compact>
+                  <Suspense fallback={<div className="slate-card rounded-[26px] h-44 animate-pulse" />}>
+                    <AthleteRankCard
+                      athleteName={userProfile.name}
+                      gender={userProfile.gender}
+                      bodyweight={nutritionLog.bodyweight}
+                      sbdTotal={sbdTotal}
+                      dotsScore={dotsScore}
+                      exercises={exercises}
+                      sessions={workoutSessions}
+                      hapticsEnabled={iosSettings.hapticsEnabled}
+                      soundEnabled={iosSettings.soundEffectsEnabled}
+                      onToast={(msg) => showToast(msg, 3000)}
+                    />
+                  </Suspense>
+                </ErrorBoundary>
+
+                {/* Interactive 3D Muscle Workload Breakdown */}
+                <ErrorBoundary moduleName="3D-мышцы" compact>
+                  <Suspense
+                    fallback={
+                      <div className="slate-card rounded-[26px] p-8 text-center text-xs font-mono text-slate-400">
+                        Загрузка 3D-модели мышц...
+                      </div>
+                    }
+                  >
+                    <MuscleLoad3D
+                      todayLoad={todayMuscleLoad}
+                      weekLoad={weekMuscleLoad}
+                      hapticsEnabled={iosSettings.hapticsEnabled}
+                    />
+                  </Suspense>
+                </ErrorBoundary>
+
+                {/* Clickable 12-Week Activity Heatmap */}
+                <div className="slate-card rounded-[26px] p-4 sm:p-5">
+                  <StreakHeatmap
+                    sessions={workoutSessions}
+                    onSelectDate={(dateKey) => {
+                      NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
+                      setSelectedHistoryDate(dateKey);
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -4918,35 +4911,6 @@ export default function App() {
         )}
       </BottomSheet>
 
-      {/* ================= BOTTOM SHEET: ФИЛЬТРЫ ================= */}
-      <BottomSheet
-        isOpen={isFilterSheetOpen}
-        onClose={() => setIsFilterSheetOpen(false)}
-        onDragProgress={setSheetDragRatio}
-        title="Фильтр рецептов"
-        subtitle="Пп головного мозга"
-        hapticsEnabled={iosSettings.hapticsEnabled}
-      >
-        <div className="grid grid-cols-2 gap-2.5 mt-3">
-          {['Все', 'Завтрак', 'Обед', 'Ужин', 'Десерты', 'Салаты', 'Выпечка'].map((cat) => (
-            <button
-              key={cat}
-              onClick={() => {
-                NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
-                setRecipeCategory(cat);
-                setIsFilterSheetOpen(false);
-              }}
-              className={`py-3 px-4 rounded-xl text-xs font-semibold text-left flex items-center justify-between transition-all ${
-                recipeCategory === cat ? 'bg-amber-400 text-slate-950 font-bold' : 'slate-well text-slate-200'
-              }`}
-            >
-              <span>{cat}</span>
-              {recipeCategory === cat && <span>✓</span>}
-            </button>
-          ))}
-        </div>
-      </BottomSheet>
-
       {/* ================= BOTTOM SHEET: НАСТРОЙКИ iOS & DYNAMIC ISLAND ================= */}
       <BottomSheet
         isOpen={isSettingsSheetOpen}
@@ -5141,6 +5105,61 @@ export default function App() {
               </div>
             )}
           </div>
+
+          {/* IndexedDB JSON Backup & Safety Snapshots */}
+          <div className="p-3.5 rounded-2xl slate-well space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <div className="font-semibold text-slate-50">Бэкап данных (JSON)</div>
+                <div className="text-[11px] text-slate-400 mt-0.5">Локальный экспорт и восстановление базы</div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={handleExportBackup}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-950 text-xs font-semibold active:scale-95"
+                >
+                  Экспорт
+                </button>
+                <button
+                  onClick={() => importJsonRef.current?.click()}
+                  className="px-3 py-1.5 rounded-xl bg-slate-900 text-slate-200 text-xs active:scale-95"
+                >
+                  Импорт
+                </button>
+                <input
+                  ref={importJsonRef}
+                  type="file"
+                  accept="application/json"
+                  className="hidden"
+                  onChange={(e) => void handleImportBackup(e.target.files?.[0])}
+                />
+              </div>
+            </div>
+
+            {snapshots.length > 0 && (
+              <div className="pt-2.5 border-t border-slate-400/10">
+                <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1.5">
+                  Автоснимки базы ({snapshots.length}):
+                </div>
+                <div className="space-y-1.5 max-h-28 overflow-y-auto">
+                  {snapshots.slice(0, 3).map((snap) => (
+                    <div
+                      key={snap.id}
+                      className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-950/70 text-[11px]"
+                    >
+                      <span className="text-slate-300 truncate pr-2">{snap.reason}</span>
+                      <button
+                        onClick={() => void applyBackupPayload(snap.payload, 'Откат к снимку')}
+                        className="text-sky-300 hover:underline font-mono shrink-0"
+                      >
+                        Откатить
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </BottomSheet>
 
@@ -5233,6 +5252,57 @@ export default function App() {
                 <span>{isInLiveRoom ? 'В Live-зале (Отключиться)' : 'Войти в Co-op зал с другом'}</span>
               </span>
             </button>
+
+            {isInLiveRoom && (
+              <div className="space-y-2.5 pt-1">
+                {/* Live Tonnage Tug-of-War Duel */}
+                {(() => {
+                  const rival = livePeers.find((p) => p.name !== (userProfile.name.trim() || 'Атлет')) || livePeers[0];
+                  if (!rival) return null;
+                  const myT = Math.max(0, dayTonnage);
+                  const rivalT = Math.max(0, rival.tonnageKg || 0);
+                  const sumT = Math.max(1, myT + rivalT);
+                  const myPct = Math.max(12, Math.min(88, Math.round((myT / sumT) * 100)));
+                  return (
+                    <div className="p-2.5 rounded-xl bg-slate-950/80 border border-white/[0.06] space-y-1.5">
+                      <div className="flex items-center justify-between font-mono text-[10px]">
+                        <span className="text-sky-300 font-bold">Ты · {myT} кг</span>
+                        <span className="text-slate-500 uppercase tracking-wider">Дуэль тоннажа</span>
+                        <span className="text-slate-200 font-bold">{rival.name.slice(0, 10)} · {rivalT} кг</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden flex">
+                        <div
+                          style={{ width: `${myPct}%`, backgroundColor: '#c8f550' }}
+                          className="h-full transition-all duration-500"
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* 3 Quick Reactions */}
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    { emoji: '🔥', label: 'Огонь!' },
+                    { emoji: '⚡', label: 'Лёгкий вес' },
+                    { emoji: '🦾', label: 'Машина' },
+                  ].map((r) => (
+                    <button
+                      key={r.label}
+                      onClick={() => {
+                        NativeiOSBridge.haptic('medium', iosSettings.hapticsEnabled);
+                        NativeiOSBridge.playTick(iosSettings.soundEffectsEnabled);
+                        liveRoomRef.current?.sendReaction(r.emoji, r.label);
+                        showToast(`Отправлено в зал: ${r.emoji} ${r.label}`, 2200);
+                      }}
+                      className="py-2 px-2 rounded-xl bg-slate-950/80 hover:bg-slate-900 border border-white/[0.07] text-[11px] font-semibold text-slate-200 active:scale-95 transition-transform"
+                    >
+                      {r.emoji} {r.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {livePeers.length > 0 && (
               <div className="space-y-1.5 pt-1">
@@ -5865,6 +5935,58 @@ export default function App() {
         </div>
       </BottomSheet>
 
+      {/* ================= BOTTOM SHEET: ДНЕВНИК ТРЕНИРОВКИ ПО ДАТЕ (HEATMAP) ================= */}
+      <BottomSheet
+        isOpen={Boolean(selectedHistoryDate)}
+        onClose={() => setSelectedHistoryDate(null)}
+        onDragProgress={setSheetDragRatio}
+        title={selectedHistoryDate ? `Дневник · ${selectedHistoryDate}` : 'Дневник'}
+        subtitle="Архив выполненных тренировок"
+        hapticsEnabled={iosSettings.hapticsEnabled}
+      >
+        {selectedHistoryDate && (() => {
+          const daySessions = workoutSessions.filter((s) => s.date === selectedHistoryDate);
+          if (daySessions.length === 0) {
+            return (
+              <div className="py-8 text-center text-xs text-slate-400">
+                В этот день тренировок не записано (день отдыха).
+              </div>
+            );
+          }
+          return (
+            <div className="space-y-3 mt-2">
+              {daySessions.map((sess) => (
+                <div key={sess.id} className="p-3.5 rounded-2xl slate-well space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-slate-50 truncate">{sess.programTitle}</div>
+                      <div className="text-[11px] text-slate-400 truncate">{sess.dayTitle}</div>
+                    </div>
+                    <div className="text-right font-mono shrink-0">
+                      <div className="text-sm font-extrabold text-sky-300">{sess.tonnageKg} кг</div>
+                      <div className="text-[10px] text-slate-400">
+                        {sess.completedSets}/{sess.totalSets} подх.
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-1 pt-2 border-t border-white/[0.06]">
+                    {sess.exercises.map((ex, i) => (
+                      <div key={i} className="flex items-center justify-between gap-2 text-xs">
+                        <span className="text-slate-200 truncate">{ex.name}</span>
+                        <span className="font-mono text-[11px] text-slate-400 shrink-0">
+                          {ex.sets.length} подх.
+                          {ex.sets[0]?.weightKg ? ` · ${ex.sets[0].weightKg} кг` : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+      </BottomSheet>
+
       {/* ================= BOTTOM SHEET: ИТОГИ ТРЕНИРОВКИ (SUMMARY) ================= */}
       <BottomSheet
         isOpen={isWorkoutSummaryOpen}
@@ -5913,6 +6035,27 @@ export default function App() {
                 {flatDaySets.length > 0 ? Math.round((completedSetsCount / flatDaySets.length) * 100) : 100}% плана
               </div>
             </div>
+          </div>
+
+          {/* Post-Workout AI Debrief */}
+          <div className="p-3.5 rounded-2xl slate-well space-y-2 border border-white/[0.07]">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-sky-300 font-bold">
+                Разбор тренировки · Debrief
+              </span>
+              <span className="font-mono text-[10px] text-slate-400">
+                Восст. {workoutDebrief.recoveryHours}
+              </span>
+            </div>
+            <p className="text-xs text-slate-200 leading-relaxed">
+              Пиковая нагрузка: <span className="font-bold text-slate-50">{workoutDebrief.peakName}</span>
+              {workoutDebrief.peakPct > 0 ? ` (${workoutDebrief.peakPct}%)` : ''}.
+              {tonnageDelta
+                ? tonnageDelta.diff >= 0
+                  ? ` Объём вырос на +${tonnageDelta.diff} кг к прошлой сессии.`
+                  : ` Объём на ${Math.abs(tonnageDelta.diff)} кг ниже прошлой сессии — хорошая разгрузка.`
+                : ' Отличная база для прогрессии на следующей неделе.'}
+            </p>
           </div>
 
           <button
@@ -6035,6 +6178,7 @@ export default function App() {
                 onClick={() => {
                   if (tab.id !== activeTab) {
                     NativeiOSBridge.haptic('light', iosSettings.hapticsEnabled);
+                    NativeiOSBridge.playTick(iosSettings.soundEffectsEnabled);
                     setActiveTab(tab.id);
                   }
                 }}

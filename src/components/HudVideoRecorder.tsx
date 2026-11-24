@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
 import { NativeiOSBridge } from '../engine/iosBridge';
 import { subscribeAppLifecycle } from '../utils/ios-lifecycle';
 
@@ -60,10 +61,15 @@ export const HudVideoRecorder: React.FC<HudVideoRecorderProps> = ({
   const rafRef = useRef<number | null>(null);
   const recStartRef = useRef<number>(0);
   const isBgPausedRef = useRef<boolean>(false);
+  const landmarkerRef = useRef<PoseLandmarker | null>(null);
+  const barPathRef = useRef<{ x: number; y: number }[]>([]);
+  const lastPoseVideoTimeRef = useRef<number>(-1);
 
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [hudTheme, setHudTheme] = useState<HudTheme>('cyan');
   const [showGrid, setShowGrid] = useState(true);
+  const [barPathEnabled, setBarPathEnabled] = useState(false);
+  const [barPathLoading, setBarPathLoading] = useState(false);
   const [liveReps, setLiveReps] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [recMs, setRecMs] = useState(0);
@@ -78,6 +84,7 @@ export const HudVideoRecorder: React.FC<HudVideoRecorderProps> = ({
     target,
     hudTheme,
     showGrid,
+    barPathEnabled,
     liveReps,
     isRecording,
     facingMode,
@@ -86,6 +93,7 @@ export const HudVideoRecorder: React.FC<HudVideoRecorderProps> = ({
     target,
     hudTheme,
     showGrid,
+    barPathEnabled,
     liveReps,
     isRecording,
     facingMode,
@@ -156,6 +164,58 @@ export const HudVideoRecorder: React.FC<HudVideoRecorderProps> = ({
         ctx.scale(-1, 1);
       }
       ctx.drawImage(video, dx, dy, dw, dh);
+      ctx.restore();
+
+      // Live MediaPipe Bar Path tracking (midpoint of wrists)
+      if (stateRef.current.barPathEnabled && landmarkerRef.current && video.currentTime !== lastPoseVideoTimeRef.current) {
+        lastPoseVideoTimeRef.current = video.currentTime;
+        try {
+          const res = landmarkerRef.current.detectForVideo(video, performance.now());
+          const lm = res.landmarks?.[0];
+          if (lm && lm.length >= 17) {
+            const lw = lm[15];
+            const rw = lm[16];
+            const lVis = (lw.visibility ?? 0) > 0.45;
+            const rVis = (rw.visibility ?? 0) > 0.45;
+            if (lVis || rVis) {
+              const nx = lVis && rVis ? (lw.x + rw.x) / 2 : lVis ? lw.x : rw.x;
+              const ny = lVis && rVis ? (lw.y + rw.y) / 2 : lVis ? lw.y : rw.y;
+              const px = curFacing === 'user' ? cw - (dx + nx * dw) : dx + nx * dw;
+              const py = dy + ny * dh;
+              const pts = barPathRef.current;
+              const prev = pts[pts.length - 1];
+              if (!prev || Math.hypot(px - prev.x, py - prev.y) > 3) {
+                pts.push({ x: px, y: py });
+                if (pts.length > 90) pts.shift();
+              }
+            }
+          }
+        } catch {}
+      }
+    }
+
+    // Render Volt Lime Bar Path trail on HUD canvas
+    if (stateRef.current.barPathEnabled && barPathRef.current.length > 1) {
+      const pts = barPathRef.current;
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#C8F550';
+      ctx.lineWidth = 5;
+      ctx.shadowColor = 'rgba(200, 245, 80, 0.75)';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) {
+        ctx.lineTo(pts[i].x, pts[i].y);
+      }
+      ctx.stroke();
+
+      const lastPt = pts[pts.length - 1];
+      ctx.fillStyle = '#C8F550';
+      ctx.beginPath();
+      ctx.arc(lastPt.x, lastPt.y, 9, 0, Math.PI * 2);
+      ctx.fill();
       ctx.restore();
     }
 
@@ -372,6 +432,52 @@ export const HudVideoRecorder: React.FC<HudVideoRecorderProps> = ({
   }, []);
 
   useEffect(() => {
+    if (!isOpen || !barPathEnabled) {
+      barPathRef.current = [];
+      return;
+    }
+    if (landmarkerRef.current) return;
+    let alive = true;
+    setBarPathLoading(true);
+    (async () => {
+      try {
+        const vision = await FilesetResolver.forVisionTasks(
+          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+        );
+        if (!alive) return;
+        const lm = await PoseLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath:
+              'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
+            delegate: 'GPU',
+          },
+          runningMode: 'VIDEO',
+          numPoses: 1,
+        });
+        if (!alive) {
+          lm.close();
+          return;
+        }
+        landmarkerRef.current = lm;
+      } catch {
+        setBarPathEnabled(false);
+      } finally {
+        if (alive) setBarPathLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [isOpen, barPathEnabled]);
+
+  useEffect(() => {
+    return () => {
+      landmarkerRef.current?.close();
+      landmarkerRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isOpen) {
       stopCamera();
       return;
@@ -402,6 +508,7 @@ export const HudVideoRecorder: React.FC<HudVideoRecorderProps> = ({
 
     NativeiOSBridge.haptic('heavy', hapticsEnabled);
     chunksRef.current = [];
+    barPathRef.current = [];
     setLiveReps(0);
     setShareStatus('');
 
@@ -601,6 +708,18 @@ export const HudVideoRecorder: React.FC<HudVideoRecorderProps> = ({
                 ))}
               </div>
               <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => {
+                    NativeiOSBridge.haptic('light', hapticsEnabled);
+                    if (barPathEnabled) barPathRef.current = [];
+                    setBarPathEnabled((v) => !v);
+                  }}
+                  className={`px-2.5 py-1.5 rounded-xl font-mono text-[11px] font-bold ${
+                    barPathEnabled ? 'bg-sky-400 text-slate-950' : 'bg-slate-900 text-slate-400'
+                  }`}
+                >
+                  {barPathLoading ? 'AI...' : 'Путь'}
+                </button>
                 <button
                   onClick={() => {
                     NativeiOSBridge.haptic('light', hapticsEnabled);

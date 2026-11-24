@@ -190,6 +190,43 @@ function createRubberSpeckleTexture(): THREE.CanvasTexture {
   return tex;
 }
 
+function createStudioFloorTexture(): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = '#090a0c';
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Soft overhead studio spotlight pool
+  const grad = ctx.createRadialGradient(256, 256, 12, 256, 256, 240);
+  grad.addColorStop(0, '#1e2128');
+  grad.addColorStop(0.35, '#13151a');
+  grad.addColorStop(0.7, '#0c0d10');
+  grad.addColorStop(1, '#090a0c');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Subtle architectural studio micro-grid
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.028)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 512; i += 32) {
+    ctx.beginPath();
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i, 512);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, i);
+    ctx.lineTo(512, i);
+    ctx.stroke();
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
 function createLimbSegment(
   length: number,
   topR: number,
@@ -226,6 +263,7 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
   const [activeStation, setActiveStation] = useState<ExerciseId>(() => exerciseType || detectExerciseFromTitle(title));
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [showHeatmap, setShowHeatmap] = useState<boolean>(true);
+  const [showBarPath, setShowBarPath] = useState<boolean>(true);
   const [cameraPreset, setCameraPreset] = useState<'quarter' | 'side' | 'front'>('quarter');
   const [phaseLabel, setPhaseLabel] = useState<LiftPhaseLabel>('Опускание');
   const [customGlbLoaded, setCustomGlbLoaded] = useState<boolean>(false);
@@ -251,6 +289,7 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
 
   const isPlayingRef = useRef(isPlaying);
   const showHeatmapRef = useRef(showHeatmap);
+  const showBarPathRef = useRef(showBarPath);
   const lastPhaseRef = useRef<LiftPhaseLabel>('Опускание');
 
   useEffect(() => {
@@ -260,6 +299,10 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
   useEffect(() => {
     showHeatmapRef.current = showHeatmap;
   }, [showHeatmap]);
+
+  useEffect(() => {
+    showBarPathRef.current = showBarPath;
+  }, [showBarPath]);
 
   useEffect(() => {
     if (cameraPreset === 'quarter') {
@@ -293,7 +336,7 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
 
     const width = container.clientWidth || 360;
     const height = container.clientHeight || 256;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, window.innerWidth < 768 ? 1.5 : 2));
     renderer.setSize(width, height);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.15;
@@ -303,33 +346,35 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
     container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x090a0c);
+    scene.fog = new THREE.FogExp2(0x090a0c, 0.115);
 
     // Realistic IBL metallic reflections via RoomEnvironment
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
     const envRT = pmremGenerator.fromScene(new RoomEnvironment(), 0.04);
     scene.environment = envRT.texture;
 
-    const camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 100);
-    camera.position.set(0, 1.48, 4.95);
-    camera.lookAt(0, 0.88, 0);
+    const camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 100);
+    camera.position.set(0, 1.48, 4.85);
+    camera.lookAt(0, 0.86, 0);
 
-    // Optional Post-Processing Neon Bloom
+    // Optional Post-Processing Subtle Studio Bloom
     let composer: EffectComposer | null = null;
     try {
       composer = new EffectComposer(renderer);
       composer.addPass(new RenderPass(scene, camera));
-      const bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 0.28, 0.45, 0.86);
+      const bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 0.16, 0.35, 0.9);
       composer.addPass(bloomPass);
       composer.addPass(new OutputPass());
     } catch {
       composer = null;
     }
 
-    // Studio Lighting with Soft Shadows
-    scene.add(new THREE.AmbientLight(0xdbeafe, 0.45));
+    // Nike / Apple Studio Three-Point + Overhead Pool Lighting
+    scene.add(new THREE.AmbientLight(0xe2e8f0, 0.35));
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.85);
-    keyLight.position.set(3.8, 6.8, 4.6);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.0);
+    keyLight.position.set(3.6, 6.8, 4.4);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 1024;
     keyLight.shadow.mapSize.height = 1024;
@@ -339,16 +384,21 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
     keyLight.shadow.camera.right = 2.8;
     keyLight.shadow.camera.top = 2.8;
     keyLight.shadow.camera.bottom = -2.8;
-    keyLight.shadow.bias = -0.0008;
+    keyLight.shadow.bias = -0.0006;
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.35);
-    rimLight.position.set(-5, 4, -4);
+    const topSpot = new THREE.SpotLight(0xf8fafc, 18, 12, Math.PI / 4.2, 0.72, 1.4);
+    topSpot.position.set(0, 5.2, 0.4);
+    topSpot.target.position.set(0, 0.3, 0);
+    scene.add(topSpot, topSpot.target);
+
+    const rimLight = new THREE.DirectionalLight(0xc8f550, 1.25);
+    rimLight.position.set(-4.8, 3.8, -4.2);
     scene.add(rimLight);
 
-    const warmFill = new THREE.DirectionalLight(0xf59e0b, 0.35);
-    warmFill.position.set(2.5, 1.2, -3.5);
-    scene.add(warmFill);
+    const coolFill = new THREE.DirectionalLight(0x94a3b8, 0.55);
+    coolFill.position.set(3.2, 1.6, -3.2);
+    scene.add(coolFill);
 
     const createdGeos: THREE.BufferGeometry[] = [];
     const createdMats: THREE.Material[] = [];
@@ -366,46 +416,87 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
     const knurlTex = createKnurlingBumpTexture();
     const oakTex = createOakWoodTexture();
     const rubberTex = createRubberSpeckleTexture();
-    createdTextures.push(knurlTex, oakTex, rubberTex);
+    const studioFloorTex = createStudioFloorTexture();
+    createdTextures.push(knurlTex, oakTex, rubberTex, studioFloorTex);
 
     // PBR Materials
-    const chromeMat = addMat(new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.95, roughness: 0.14 }));
+    const chromeMat = addMat(new THREE.MeshStandardMaterial({ color: 0xf4f6f8, metalness: 0.96, roughness: 0.12 }));
+    const brushedSteelMat = addMat(new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.9, roughness: 0.26 }));
     const knurledSteelMat = addMat(
       new THREE.MeshStandardMaterial({
-        color: 0x94a3b8,
-        metalness: 0.88,
-        roughness: 0.32,
+        color: 0x9ca3af,
+        metalness: 0.9,
+        roughness: 0.3,
         bumpMap: knurlTex,
-        bumpScale: 0.012,
+        bumpScale: 0.014,
       })
     );
-    const darkSteelMat = addMat(new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.3 }));
-    const frameAccentMat = addMat(new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.72, roughness: 0.38 }));
-    const leatherMat = addMat(new THREE.MeshStandardMaterial({ color: 0x111827, metalness: 0.08, roughness: 0.72 }));
+    const darkSteelMat = addMat(new THREE.MeshStandardMaterial({ color: 0x1b1e26, metalness: 0.82, roughness: 0.28 }));
+    const frameAccentMat = addMat(new THREE.MeshStandardMaterial({ color: 0x111318, metalness: 0.72, roughness: 0.38 }));
+    const leatherMat = addMat(new THREE.MeshStandardMaterial({ color: 0x12141a, metalness: 0.06, roughness: 0.74 }));
     const rubberMat = addMat(new THREE.MeshStandardMaterial({ map: rubberTex, metalness: 0.05, roughness: 0.9 }));
     const oakMat = addMat(new THREE.MeshStandardMaterial({ map: oakTex, metalness: 0.04, roughness: 0.58 }));
     const neonTrimMat = addMat(
-      new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.95, roughness: 0.2 })
+      new THREE.MeshStandardMaterial({ color: 0xc8f550, emissive: 0x65a30d, emissiveIntensity: 0.32, roughness: 0.28, metalness: 0.2 })
     );
 
-    // Athlete Base Materials
-    const suitMat = addMat(new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.25, roughness: 0.48 }));
-    const shortsMat = addMat(new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.15, roughness: 0.62 }));
-    const skinMat = addMat(new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.32, roughness: 0.4 }));
+    // Premium Satin Dark Titanium Mannequin Materials (MeshPhysicalMaterial + Clearcoat)
+    const suitMat = addMat(
+      new THREE.MeshPhysicalMaterial({
+        color: 0x252830,
+        metalness: 0.52,
+        roughness: 0.36,
+        clearcoat: 0.45,
+        clearcoatRoughness: 0.28,
+      })
+    );
+    const shortsMat = addMat(
+      new THREE.MeshPhysicalMaterial({
+        color: 0x14161c,
+        metalness: 0.25,
+        roughness: 0.52,
+        clearcoat: 0.18,
+        clearcoatRoughness: 0.45,
+      })
+    );
+    const skinMat = addMat(
+      new THREE.MeshPhysicalMaterial({
+        color: 0x3b3f4c,
+        metalness: 0.58,
+        roughness: 0.3,
+        clearcoat: 0.5,
+        clearcoatRoughness: 0.24,
+      })
+    );
+    const shoeMat = addMat(new THREE.MeshStandardMaterial({ color: 0x111216, metalness: 0.22, roughness: 0.62 }));
+    const visorMat = addMat(
+      new THREE.MeshPhysicalMaterial({
+        color: 0x050608,
+        metalness: 0.92,
+        roughness: 0.08,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.06,
+      })
+    );
     const jointAccentMat = addMat(
-      new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0369a1, emissiveIntensity: 0.55, roughness: 0.28 })
+      new THREE.MeshPhysicalMaterial({
+        color: 0x5c6070,
+        metalness: 0.72,
+        roughness: 0.24,
+        clearcoat: 0.4,
+      })
     );
 
     // Muscle Heatmap Materials (dynamically driven each frame)
     const makeHeatMat = () =>
       addMat(
         new THREE.MeshStandardMaterial({
-          color: 0xf97316,
-          emissive: 0xea580c,
+          color: 0xc8f550,
+          emissive: 0x84cc16,
           emissiveIntensity: 0.0,
           transparent: true,
           opacity: 0.0,
-          roughness: 0.3,
+          roughness: 0.35,
         })
       );
     const pecsHeatMat = makeHeatMat();
@@ -419,28 +510,49 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
     world.position.y = -0.15;
     scene.add(world);
 
-    // Studio Floor (Receives Soft Shadows)
-    const baseDisc = new THREE.Mesh(addGeo(new THREE.CylinderGeometry(2.38, 2.48, 0.06, 48)), rubberMat);
-    baseDisc.position.y = -0.03;
-    baseDisc.receiveShadow = true;
-    world.add(baseDisc);
+    // Seamless Infinite Studio Floor (fades smoothly into #090a0c fog, no cut-out disc)
+    const studioFloorMat = addMat(
+      new THREE.MeshStandardMaterial({
+        map: studioFloorTex,
+        roughness: 0.82,
+        metalness: 0.08,
+      })
+    );
+    const studioFloor = new THREE.Mesh(addGeo(new THREE.PlaneGeometry(18, 18)), studioFloorMat);
+    studioFloor.rotation.x = -Math.PI / 2;
+    studioFloor.position.y = 0;
+    studioFloor.receiveShadow = true;
+    world.add(studioFloor);
 
+    // Subtle hairline calibration ring on studio floor
     const floorRing = new THREE.Mesh(
-      addGeo(new THREE.RingGeometry(2.26, 2.31, 64)),
-      addMat(new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.3, side: THREE.DoubleSide }))
+      addGeo(new THREE.RingGeometry(1.78, 1.805, 72)),
+      addMat(new THREE.MeshBasicMaterial({ color: 0xc8f550, transparent: true, opacity: 0.16, side: THREE.DoubleSide }))
     );
     floorRing.rotation.x = -Math.PI / 2;
-    floorRing.position.y = 0.005;
+    floorRing.position.y = 0.003;
     world.add(floorRing);
 
-    // ================= BUILD LOADED IPF BARBELL WITH FLEXING SLEEVES =================
+    // ================= BUILD LOADED IPF BARBELL WITH SCULPTED COMPETITION PLATES =================
     const barbellGroup = new THREE.Group();
     world.add(barbellGroup);
 
-    const shaft = new THREE.Mesh(addGeo(new THREE.CylinderGeometry(0.022, 0.022, 1.38, 18)), knurledSteelMat);
+    const shaft = new THREE.Mesh(addGeo(new THREE.CylinderGeometry(0.022, 0.022, 1.38, 20)), knurledSteelMat);
     shaft.rotation.z = Math.PI / 2;
     shaft.castShadow = true;
     barbellGroup.add(shaft);
+
+    // Machined IPF 81cm Grip Rings + Center Marker
+    const gripRingGeo = addGeo(new THREE.CylinderGeometry(0.0235, 0.0235, 0.012, 18));
+    gripRingGeo.rotateZ(Math.PI / 2);
+    [-0.405, 0.405].forEach((gx) => {
+      const gr = new THREE.Mesh(gripRingGeo, chromeMat);
+      gr.position.x = gx;
+      barbellGroup.add(gr);
+    });
+    const centerMark = new THREE.Mesh(gripRingGeo, neonTrimMat);
+    centerMark.scale.set(0.6, 1.02, 1.02);
+    barbellGroup.add(centerMark);
 
     // Left & Right Sleeve Pivots (for realistic heavy-weight barbell whip/bend)
     const leftEndPivot = new THREE.Group();
@@ -449,18 +561,18 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
     rightEndPivot.position.x = 0.68;
     barbellGroup.add(leftEndPivot, rightEndPivot);
 
-    const shoulderGeo = addGeo(new THREE.CylinderGeometry(0.048, 0.048, 0.04, 18));
+    const shoulderGeo = addGeo(new THREE.CylinderGeometry(0.052, 0.052, 0.042, 22));
     shoulderGeo.rotateZ(Math.PI / 2);
     const lSh = new THREE.Mesh(shoulderGeo, chromeMat);
-    lSh.position.x = -0.02;
+    lSh.position.x = -0.021;
     lSh.castShadow = true;
     const rSh = new THREE.Mesh(shoulderGeo, chromeMat);
-    rSh.position.x = 0.02;
+    rSh.position.x = 0.021;
     rSh.castShadow = true;
     leftEndPivot.add(lSh);
     rightEndPivot.add(rSh);
 
-    const sleeveGeo = addGeo(new THREE.CylinderGeometry(0.034, 0.034, 0.46, 18));
+    const sleeveGeo = addGeo(new THREE.CylinderGeometry(0.034, 0.034, 0.48, 22));
     sleeveGeo.rotateZ(Math.PI / 2);
     const lSl = new THREE.Mesh(sleeveGeo, chromeMat);
     lSl.position.x = -0.26;
@@ -471,6 +583,7 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
     leftEndPivot.add(lSl);
     rightEndPivot.add(rSl);
 
+    // Competition Sculpted Bumper Plates (Beveled outer lip + Recessed face + Brushed steel hub)
     let plateOffset = 0.05;
     plates.forEach((plate: PlateSpec) => {
       const r = PLATE_RADIUS_MAP[plate.weight] || 0.3;
@@ -479,33 +592,101 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
       const tex = createPlateLabelTexture(plate.label, plate.color, lightText);
       createdTextures.push(tex);
 
-      const rimMat = addMat(new THREE.MeshStandardMaterial({ color: new THREE.Color(plate.edge), roughness: 0.42, metalness: 0.2 }));
-      const faceMat = addMat(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.38, metalness: 0.15 }));
-      const discGeo = addGeo(new THREE.CylinderGeometry(r, r, th, 32));
-      discGeo.rotateZ(Math.PI / 2);
+      const rimMat = addMat(
+        new THREE.MeshStandardMaterial({
+          color: new THREE.Color(plate.edge),
+          roughness: 0.48,
+          metalness: 0.14,
+        })
+      );
+      const faceMat = addMat(
+        new THREE.MeshStandardMaterial({
+          map: tex,
+          roughness: 0.36,
+          metalness: 0.12,
+        })
+      );
 
-      const rightP = new THREE.Mesh(discGeo, [rimMat, faceMat, faceMat]);
+      // Slightly recessed core disc so outer lip stands proud like a real Eleiko/IPF plate
+      const innerDiscGeo = addGeo(new THREE.CylinderGeometry(r * 0.94, r * 0.94, th * 0.78, 36));
+      innerDiscGeo.rotateZ(Math.PI / 2);
+
+      // Rounded outer rubber bumper tire
+      const outerLipGeo = addGeo(new THREE.TorusGeometry(r - th * 0.34, th * 0.48, 12, 36));
+      outerLipGeo.rotateY(Math.PI / 2);
+
+      // Brushed steel center hub insert
+      const hubGeo = addGeo(new THREE.CylinderGeometry(0.068, 0.068, th * 0.92, 22));
+      hubGeo.rotateZ(Math.PI / 2);
+
+      const buildPlateMesh = () => {
+        const pg = new THREE.Group();
+        const core = new THREE.Mesh(innerDiscGeo, [rimMat, faceMat, faceMat]);
+        core.castShadow = true;
+        const lip = new THREE.Mesh(outerLipGeo, rimMat);
+        lip.castShadow = true;
+        const hub = new THREE.Mesh(hubGeo, brushedSteelMat);
+        pg.add(core, lip, hub);
+        return pg;
+      };
+
+      const rightP = buildPlateMesh();
       rightP.position.x = plateOffset + th / 2;
-      rightP.castShadow = true;
-      const leftP = new THREE.Mesh(discGeo, [rimMat, faceMat, faceMat]);
+      const leftP = buildPlateMesh();
       leftP.position.x = -(plateOffset + th / 2);
-      leftP.castShadow = true;
 
       rightEndPivot.add(rightP);
       leftEndPivot.add(leftP);
       plateOffset += th + 0.008;
     });
 
+    // Competition Lever-Lock Collars
     if (plates.length > 0) {
-      const colGeo = addGeo(new THREE.CylinderGeometry(0.055, 0.055, 0.05, 16));
-      colGeo.rotateZ(Math.PI / 2);
-      const rCol = new THREE.Mesh(colGeo, neonTrimMat);
+      const colBodyGeo = addGeo(new THREE.CylinderGeometry(0.056, 0.056, 0.048, 20));
+      colBodyGeo.rotateZ(Math.PI / 2);
+      const leverGeo = addGeo(new THREE.BoxGeometry(0.022, 0.065, 0.022));
+
+      const buildCollar = () => {
+        const cg = new THREE.Group();
+        const body = new THREE.Mesh(colBodyGeo, darkSteelMat);
+        body.castShadow = true;
+        const lever = new THREE.Mesh(leverGeo, neonTrimMat);
+        lever.position.set(0, 0.06, 0.015);
+        lever.rotation.x = 0.25;
+        cg.add(body, lever);
+        return cg;
+      };
+
+      const rCol = buildCollar();
       rCol.position.x = plateOffset + 0.03;
-      const lCol = new THREE.Mesh(colGeo, neonTrimMat);
+      const lCol = buildCollar();
       lCol.position.x = -(plateOffset + 0.03);
       rightEndPivot.add(rCol);
       leftEndPivot.add(lCol);
     }
+
+    // ================= 3D BAR PATH TRAJECTORY TRAIL (VOLT LIME) =================
+    const BAR_PATH_POINTS = 56;
+    const barPathPositions = new Float32Array(BAR_PATH_POINTS * 3);
+    const barPathGeo = addGeo(new THREE.BufferGeometry());
+    barPathGeo.setAttribute('position', new THREE.BufferAttribute(barPathPositions, 3));
+    const barPathMat = addMat(
+      new THREE.LineBasicMaterial({
+        color: 0xc8f550,
+        transparent: true,
+        opacity: 0.72,
+      })
+    );
+    const barPathLine = new THREE.Line(barPathGeo, barPathMat);
+    barPathLine.frustumCulled = false;
+    world.add(barPathLine);
+
+    const barPathDot = new THREE.Mesh(
+      addGeo(new THREE.SphereGeometry(0.026, 12, 12)),
+      neonTrimMat
+    );
+    world.add(barPathDot);
+    let barPathInitialized = false;
 
     // ================= BUILD STATION EQUIPMENT =================
     if (activeStation === 'bench') {
@@ -517,15 +698,15 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
       baseBar.receiveShadow = true;
       benchGroup.add(baseBar);
 
-      const pad = new THREE.Mesh(addGeo(new THREE.BoxGeometry(0.34, 0.1, 1.25)), leatherMat);
-      pad.position.set(0, 0.46, 0.1);
+      const pad = new THREE.Mesh(addGeo(new THREE.BoxGeometry(0.34, 0.1, 1.08)), leatherMat);
+      pad.position.set(0, 0.46, 0.02);
       pad.castShadow = true;
       pad.receiveShadow = true;
       benchGroup.add(pad);
 
       const legGeo = addGeo(new THREE.BoxGeometry(0.08, 0.4, 0.08));
       const fLeg = new THREE.Mesh(legGeo, darkSteelMat);
-      fLeg.position.set(0, 0.23, 0.58);
+      fLeg.position.set(0, 0.23, 0.48);
       fLeg.castShadow = true;
       const bLeg = new THREE.Mesh(legGeo, darkSteelMat);
       bLeg.position.set(0, 0.23, -0.4);
@@ -619,100 +800,175 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
       platGroup.add(centerOak, leftRub, rightRub, trimFront, trimBack);
     }
 
-    // ================= BUILD 3D PROCEDURAL ATHLETE + MUSCLE HEATMAP =================
+    // ================= BUILD SCULPTED 3D ATHLETE MANNEQUIN + MUSCLE HEATMAP =================
     const athlete = new THREE.Group();
     world.add(athlete);
 
+    // Sculpted Pelvis & Athletic Waistband
     const pelvis = new THREE.Group();
     athlete.add(pelvis);
-    const pelvisMesh = new THREE.Mesh(addGeo(new THREE.BoxGeometry(0.32, 0.16, 0.2)), shortsMat);
-    pelvisMesh.castShadow = true;
-    pelvis.add(pelvisMesh);
 
-    // Glutes Heatmap Pad
-    const glutesPad = new THREE.Mesh(addGeo(new THREE.BoxGeometry(0.3, 0.14, 0.06)), glutesHeatMat);
-    glutesPad.position.set(0, -0.01, -0.095);
-    pelvis.add(glutesPad);
+    const pelvisCore = new THREE.Mesh(addGeo(new THREE.CylinderGeometry(0.145, 0.135, 0.16, 24)), shortsMat);
+    pelvisCore.scale.set(1.12, 1, 0.74);
+    pelvisCore.castShadow = true;
+    pelvis.add(pelvisCore);
 
+    const beltBand = new THREE.Mesh(addGeo(new THREE.CylinderGeometry(0.148, 0.148, 0.032, 24)), neonTrimMat);
+    beltBand.scale.set(1.13, 1, 0.75);
+    beltBand.position.y = 0.072;
+    pelvis.add(beltBand);
+
+    // Contoured Glutes Heatmap Shells
+    const gluteGeo = addGeo(new THREE.SphereGeometry(0.088, 18, 18));
+    const lGlute = new THREE.Mesh(gluteGeo, glutesHeatMat);
+    lGlute.scale.set(1.05, 0.95, 0.75);
+    lGlute.position.set(-0.078, -0.02, -0.082);
+    const rGlute = new THREE.Mesh(gluteGeo, glutesHeatMat);
+    rGlute.scale.set(1.05, 0.95, 0.75);
+    rGlute.position.set(0.078, -0.02, -0.082);
+    pelvis.add(lGlute, rGlute);
+
+    // Sculpted V-Tapered Athletic Torso (Waist -> Ribcage -> Lats -> Traps)
     const torso = new THREE.Group();
     torso.position.y = 0.08;
     pelvis.add(torso);
 
-    const chestMesh = new THREE.Mesh(addGeo(new THREE.BoxGeometry(0.38, 0.48, 0.22)), suitMat);
-    chestMesh.position.y = 0.26;
-    chestMesh.castShadow = true;
-    torso.add(chestMesh);
+    const absMesh = new THREE.Mesh(addGeo(new THREE.CylinderGeometry(0.155, 0.138, 0.22, 24)), suitMat);
+    absMesh.scale.set(1.08, 1, 0.72);
+    absMesh.position.y = 0.11;
+    absMesh.castShadow = true;
+    torso.add(absMesh);
 
-    const coreStripe = new THREE.Mesh(addGeo(new THREE.BoxGeometry(0.05, 0.34, 0.23)), neonTrimMat);
-    coreStripe.position.y = 0.26;
-    torso.add(coreStripe);
+    const upperChestMesh = new THREE.Mesh(addGeo(new THREE.CylinderGeometry(0.195, 0.158, 0.28, 26)), suitMat);
+    upperChestMesh.scale.set(1.12, 1, 0.68);
+    upperChestMesh.position.y = 0.34;
+    upperChestMesh.castShadow = true;
+    torso.add(upperChestMesh);
 
-    // Pecs Heatmap Pads (Chest)
-    const pecGeo = addGeo(new THREE.BoxGeometry(0.14, 0.14, 0.04));
+    // Trapezius / Upper Back Slope
+    const trapsMesh = new THREE.Mesh(addGeo(new THREE.SphereGeometry(0.165, 22, 16)), suitMat);
+    trapsMesh.scale.set(1.22, 0.42, 0.68);
+    trapsMesh.position.y = 0.47;
+    trapsMesh.castShadow = true;
+    torso.add(trapsMesh);
+
+    // Subtle Spine Accent Line (Back)
+    const spineAccent = new THREE.Mesh(addGeo(new THREE.CapsuleGeometry(0.012, 0.26, 8, 12)), neonTrimMat);
+    spineAccent.position.set(0, 0.28, -0.118);
+    torso.add(spineAccent);
+
+    // Contoured Pecs Heatmap Shells (flush with chest)
+    const pecGeo = addGeo(new THREE.SphereGeometry(0.082, 20, 18));
     const lPec = new THREE.Mesh(pecGeo, pecsHeatMat);
-    lPec.position.set(-0.095, 0.36, 0.11);
+    lPec.scale.set(1.08, 0.78, 0.32);
+    lPec.position.set(-0.082, 0.355, 0.108);
     const rPec = new THREE.Mesh(pecGeo, pecsHeatMat);
-    rPec.position.set(0.095, 0.36, 0.11);
+    rPec.scale.set(1.08, 0.78, 0.32);
+    rPec.position.set(0.082, 0.355, 0.108);
     torso.add(lPec, rPec);
 
-    // Lower Back / Erectors Heatmap Pad
-    const backPad = new THREE.Mesh(addGeo(new THREE.BoxGeometry(0.24, 0.26, 0.04)), backHeatMat);
-    backPad.position.set(0, 0.2, -0.11);
-    torso.add(backPad);
+    // Sculpted Lats / Lower Back Heatmap Shells
+    const backGeo = addGeo(new THREE.CapsuleGeometry(0.052, 0.2, 10, 14));
+    const lBack = new THREE.Mesh(backGeo, backHeatMat);
+    lBack.position.set(-0.068, 0.24, -0.102);
+    lBack.rotation.z = -0.12;
+    const rBack = new THREE.Mesh(backGeo, backHeatMat);
+    rBack.position.set(0.068, 0.24, -0.102);
+    rBack.rotation.z = 0.12;
+    torso.add(lBack, rBack);
 
-    const head = new THREE.Mesh(addGeo(new THREE.SphereGeometry(0.125, 20, 20)), skinMat);
-    head.position.y = 0.64;
-    head.castShadow = true;
-    torso.add(head);
+    // Neck + Sculpted Athletic Head + Sleek Dark Visor
+    const neck = new THREE.Mesh(addGeo(new THREE.CylinderGeometry(0.052, 0.062, 0.095, 18)), skinMat);
+    neck.position.y = 0.535;
+    neck.castShadow = true;
+    torso.add(neck);
 
-    // Arms + Triceps Heatmap
+    const headGroup = new THREE.Group();
+    headGroup.position.y = 0.655;
+    const cranium = new THREE.Mesh(addGeo(new THREE.SphereGeometry(0.106, 24, 24)), skinMat);
+    cranium.scale.set(0.92, 1.12, 0.98);
+    cranium.castShadow = true;
+    headGroup.add(cranium);
+
+    const visor = new THREE.Mesh(addGeo(new THREE.CylinderGeometry(0.098, 0.094, 0.042, 24, 1, false, -Math.PI * 0.35, Math.PI * 0.7)), visorMat);
+    visor.position.set(0, 0.015, 0.015);
+    headGroup.add(visor);
+    torso.add(headGroup);
+
+    // Sculpted Arms (Deltoids + Tapered Upper Arm + Forearm + Gripping Hand)
     const upperArmLen = 0.31;
     const foreArmLen = 0.29;
-    const triGeo = addGeo(new THREE.CylinderGeometry(0.058, 0.05, 0.18, 12));
+    const deltGeo = addGeo(new THREE.SphereGeometry(0.068, 18, 18));
+    const triGeo = addGeo(new THREE.CapsuleGeometry(0.048, 0.12, 10, 14));
+    const handGeo = addGeo(new THREE.SphereGeometry(0.044, 14, 14));
 
-    const leftShoulderG = createLimbSegment(upperArmLen, 0.055, 0.048, skinMat, jointAccentMat, createdGeos);
-    leftShoulderG.position.set(-0.24, 0.46, 0);
-    const lTri = new THREE.Mesh(triGeo, tricepsHeatMat);
-    lTri.position.set(0, -0.15, -0.01);
-    leftShoulderG.add(lTri);
-    const leftElbowG = createLimbSegment(foreArmLen, 0.046, 0.038, skinMat, jointAccentMat, createdGeos);
-    leftElbowG.position.y = -upperArmLen;
-    leftShoulderG.add(leftElbowG);
+    const buildArm = (side: -1 | 1) => {
+      const shoulderG = createLimbSegment(upperArmLen, 0.054, 0.044, skinMat, jointAccentMat, createdGeos);
+      shoulderG.position.set(side * 0.235, 0.445, 0);
 
-    const rightShoulderG = createLimbSegment(upperArmLen, 0.055, 0.048, skinMat, jointAccentMat, createdGeos);
-    rightShoulderG.position.set(0.24, 0.46, 0);
-    const rTri = new THREE.Mesh(triGeo, tricepsHeatMat);
-    rTri.position.set(0, -0.15, -0.01);
-    rightShoulderG.add(rTri);
-    const rightElbowG = createLimbSegment(foreArmLen, 0.046, 0.038, skinMat, jointAccentMat, createdGeos);
-    rightElbowG.position.y = -upperArmLen;
-    rightShoulderG.add(rightElbowG);
+      const delt = new THREE.Mesh(deltGeo, suitMat);
+      delt.scale.set(1.05, 1.15, 0.95);
+      delt.position.set(side * 0.008, -0.015, 0);
+      delt.castShadow = true;
+      shoulderG.add(delt);
 
+      const tri = new THREE.Mesh(triGeo, tricepsHeatMat);
+      tri.position.set(0, -0.15, -0.018);
+      shoulderG.add(tri);
+
+      const elbowG = createLimbSegment(foreArmLen, 0.044, 0.032, skinMat, jointAccentMat, createdGeos);
+      elbowG.position.y = -upperArmLen;
+
+      const hand = new THREE.Mesh(handGeo, shoeMat);
+      hand.scale.set(0.9, 1.1, 0.85);
+      hand.position.y = -foreArmLen;
+      elbowG.add(hand);
+
+      shoulderG.add(elbowG);
+      return { shoulderG, elbowG };
+    };
+
+    const { shoulderG: leftShoulderG, elbowG: leftElbowG } = buildArm(-1);
+    const { shoulderG: rightShoulderG, elbowG: rightElbowG } = buildArm(1);
     torso.add(leftShoulderG, rightShoulderG);
 
-    // Legs + Quads Heatmap
+    // Sculpted Legs (Thigh + Quads Heatmap + Tapered Calf + Athletic Shoe)
     const thighLen = 0.42;
     const shinLen = 0.42;
-    const quadGeo = addGeo(new THREE.CylinderGeometry(0.078, 0.064, 0.26, 14));
+    const quadGeo = addGeo(new THREE.CapsuleGeometry(0.068, 0.18, 12, 16));
+    const calfGeo = addGeo(new THREE.SphereGeometry(0.056, 16, 16));
+    const shoeGeo = addGeo(new THREE.CapsuleGeometry(0.046, 0.11, 10, 14));
 
-    const leftHipG = createLimbSegment(thighLen, 0.075, 0.06, shortsMat, jointAccentMat, createdGeos);
-    leftHipG.position.set(-0.11, -0.04, 0);
-    const lQuad = new THREE.Mesh(quadGeo, quadsHeatMat);
-    lQuad.position.set(0, -0.2, 0.015);
-    leftHipG.add(lQuad);
-    const leftKneeG = createLimbSegment(shinLen, 0.058, 0.045, skinMat, jointAccentMat, createdGeos);
-    leftKneeG.position.y = -thighLen;
-    leftHipG.add(leftKneeG);
+    const buildLeg = (side: -1 | 1) => {
+      const hipG = createLimbSegment(thighLen, 0.078, 0.056, shortsMat, jointAccentMat, createdGeos);
+      hipG.position.set(side * 0.108, -0.04, 0);
 
-    const rightHipG = createLimbSegment(thighLen, 0.075, 0.06, shortsMat, jointAccentMat, createdGeos);
-    rightHipG.position.set(0.11, -0.04, 0);
-    const rQuad = new THREE.Mesh(quadGeo, quadsHeatMat);
-    rQuad.position.set(0, -0.2, 0.015);
-    rightHipG.add(rQuad);
-    const rightKneeG = createLimbSegment(shinLen, 0.058, 0.045, skinMat, jointAccentMat, createdGeos);
-    rightKneeG.position.y = -thighLen;
-    rightHipG.add(rightKneeG);
+      const quad = new THREE.Mesh(quadGeo, quadsHeatMat);
+      quad.position.set(0, -0.2, 0.022);
+      hipG.add(quad);
 
+      const kneeG = createLimbSegment(shinLen, 0.054, 0.038, skinMat, jointAccentMat, createdGeos);
+      kneeG.position.y = -thighLen;
+
+      const calf = new THREE.Mesh(calfGeo, skinMat);
+      calf.scale.set(0.95, 1.65, 1.05);
+      calf.position.set(0, -0.14, -0.018);
+      calf.castShadow = true;
+      kneeG.add(calf);
+
+      const shoe = new THREE.Mesh(shoeGeo, shoeMat);
+      shoe.rotation.x = Math.PI / 2;
+      shoe.scale.set(1.0, 1.0, 0.72);
+      shoe.position.set(0, -shinLen - 0.015, 0.048);
+      shoe.castShadow = true;
+      kneeG.add(shoe);
+
+      hipG.add(kneeG);
+      return { hipG, kneeG };
+    };
+
+    const { hipG: leftHipG, kneeG: leftKneeG } = buildLeg(-1);
+    const { hipG: rightHipG, kneeG: rightKneeG } = buildLeg(1);
     pelvis.add(leftHipG, rightHipG);
 
     // ================= OPTIONAL CUSTOM .GLB MODEL LOADER (public/models/athlete.glb) =================
@@ -751,6 +1007,18 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
     let cycleSec = 0;
     let lastTime = performance.now();
     let isBgPaused = false;
+    let isInView = true;
+    const io =
+      typeof IntersectionObserver !== 'undefined'
+        ? new IntersectionObserver(
+            (entries) => {
+              isInView = Boolean(entries[0]?.isIntersecting);
+              if (isInView) lastTime = performance.now();
+            },
+            { threshold: 0.05 }
+          )
+        : null;
+    io?.observe(container);
     const unsubscribeLifecycle = subscribeAppLifecycle((state) => {
       isBgPaused = state === 'background' || state === 'hidden';
       if (!isBgPaused) {
@@ -761,12 +1029,12 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
 
     const setHeat = (mat: THREE.MeshStandardMaterial, intensity: number) => {
       const active = showHeatmapRef.current ? intensity : 0;
-      mat.opacity = active * 0.85;
-      mat.emissiveIntensity = active * 1.4;
+      mat.opacity = active * 0.72;
+      mat.emissiveIntensity = active * 0.75;
     };
 
     const animate = (now: number) => {
-      if (isBgPaused) {
+      if (isBgPaused || !isInView) {
         frameId = requestAnimationFrame(animate);
         return;
       }
@@ -792,31 +1060,55 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
 
       // Update Muscle Heatmap intensity per exercise
       if (activeStation === 'bench') {
-        setHeat(pecsHeatMat, effort);
-        setHeat(tricepsHeatMat, effort * 0.85);
+        setHeat(pecsHeatMat, effort * 0.65);
+        setHeat(tricepsHeatMat, effort * 0.55);
         setHeat(quadsHeatMat, 0);
         setHeat(glutesHeatMat, 0);
         setHeat(backHeatMat, 0);
 
-        pelvis.position.set(0, 0.56, 0.24);
+        // Athlete lies flat on bench pad (pad top y = 0.51, front edge z = 0.56)
+        pelvis.position.set(0, 0.58, 0.38);
         pelvis.rotation.set(-Math.PI / 2, 0, 0);
-        torso.rotation.set(0.05, 0, 0);
+        torso.rotation.set(0.03, 0, 0);
 
-        leftHipG.rotation.set(Math.PI / 2 + 0.15, 0, -0.14);
-        rightHipG.rotation.set(Math.PI / 2 + 0.15, 0, 0.14);
-        leftKneeG.rotation.set(-1.35, 0, 0);
-        rightKneeG.rotation.set(-1.35, 0, 0);
+        // Legs splay cleanly around front edge of bench, shins go straight down to floor (no clipping)
+        leftHipG.rotation.set(0.28, 0, -0.34);
+        rightHipG.rotation.set(0.28, 0, 0.34);
+        leftKneeG.rotation.set(1.25, 0, 0.18);
+        rightKneeG.rotation.set(1.25, 0, -0.18);
 
-        const barY = 1.18 - rep * 0.4 + microShake;
-        const barZ = -0.18 + rep * 0.06;
+        // Barbell travels directly over chest (shoulders are at world y ~ 0.59, z ~ -0.14)
+        const barY = 1.13 - rep * 0.39 + microShake;
+        const barZ = -0.14 + rep * 0.05;
         barbellGroup.position.set(0, barY, barZ);
 
-        const shoulderAngle = Math.PI / 2 + rep * 0.85;
-        const elbowAngle = -(rep * 1.55 + 0.12);
-        leftShoulderG.rotation.set(shoulderAngle, 0, -0.35 - rep * 0.25);
-        rightShoulderG.rotation.set(shoulderAngle, 0, 0.35 + rep * 0.25);
-        leftElbowG.rotation.set(elbowAngle, 0, 0.22);
-        rightElbowG.rotation.set(elbowAngle, 0, -0.22);
+        // Exact 2-bone analytical IK in torso local space (pelvis rotated -PI/2 around X: local +Z = world UP, local +Y = world -Z)
+        const shoulderY = 0.593;
+        const shoulderZ = -0.145;
+        // Convert world delta (bar - shoulder) into torso local YZ plane:
+        // local_dy (towards head) = -(barZ - shoulderZ), local_dz (UP) = (barY - shoulderY)
+        const localDy = -(barZ - shoulderZ);
+        const localDz = barY - shoulderY;
+        const dist = Math.min(upperArmLen + foreArmLen - 0.01, Math.max(0.14, Math.hypot(localDy, localDz)));
+        const cosElbow = Math.max(
+          -1,
+          Math.min(1, (upperArmLen * upperArmLen + foreArmLen * foreArmLen - dist * dist) / (2 * upperArmLen * foreArmLen))
+        );
+        const elbowFlex = Math.PI - Math.acos(cosElbow);
+        const cosAlpha = Math.max(
+          -1,
+          Math.min(1, (upperArmLen * upperArmLen + dist * dist - foreArmLen * foreArmLen) / (2 * upperArmLen * dist))
+        );
+        const alpha = Math.acos(cosAlpha);
+        // Arm at rest points along local -Y; rotation.x by rx gives (0, -cos(rx), -sin(rx))
+        const rxTarget = Math.atan2(-localDz, -localDy);
+        const upperArmPitch = rxTarget + alpha; // negative angle -> points UP towards barbell!
+        const flareOut = 0.12 + rep * 0.16;
+
+        leftShoulderG.rotation.set(upperArmPitch, 0, -flareOut);
+        rightShoulderG.rotation.set(upperArmPitch, 0, flareOut);
+        leftElbowG.rotation.set(-elbowFlex, 0, flareOut * 0.9);
+        rightElbowG.rotation.set(-elbowFlex, 0, -flareOut * 0.9);
       } else if (activeStation === 'squat') {
         setHeat(pecsHeatMat, 0);
         setHeat(tricepsHeatMat, 0);
@@ -878,6 +1170,37 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
         rightElbowG.rotation.set(-0.04, 0, 0);
       }
 
+      // Update 3D Bar Path Trajectory Trail
+      const showPath = showBarPathRef.current;
+      barPathLine.visible = showPath;
+      barPathDot.visible = showPath;
+      if (showPath) {
+        const bx = barbellGroup.position.x;
+        const by = barbellGroup.position.y;
+        const bz = barbellGroup.position.z;
+        barPathDot.position.set(bx, by, bz);
+
+        if (!barPathInitialized) {
+          for (let i = 0; i < BAR_PATH_POINTS; i++) {
+            barPathPositions[i * 3] = bx;
+            barPathPositions[i * 3 + 1] = by;
+            barPathPositions[i * 3 + 2] = bz;
+          }
+          barPathInitialized = true;
+        } else if (isPlayingRef.current) {
+          for (let i = 0; i < BAR_PATH_POINTS - 1; i++) {
+            barPathPositions[i * 3] = barPathPositions[(i + 1) * 3];
+            barPathPositions[i * 3 + 1] = barPathPositions[(i + 1) * 3 + 1];
+            barPathPositions[i * 3 + 2] = barPathPositions[(i + 1) * 3 + 2];
+          }
+          const last = (BAR_PATH_POINTS - 1) * 3;
+          barPathPositions[last] = bx;
+          barPathPositions[last + 1] = by;
+          barPathPositions[last + 2] = bz;
+        }
+        (barPathGeo.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+      }
+
       const st = orbitRef.current;
       st.rotY += (st.targetRotY - st.rotY) * 0.12;
       st.rotX += (st.targetRotX - st.rotX) * 0.12;
@@ -906,6 +1229,7 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
     window.addEventListener('resize', handleResize);
 
     return () => {
+      io?.disconnect();
       unsubscribeLifecycle();
       cancelAnimationFrame(frameId);
       window.removeEventListener('resize', handleResize);
@@ -1038,8 +1362,22 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
           {phaseLabel}
         </div>
 
-        {/* Heatmap + Play/Pause Controls */}
+        {/* Bar Path + Heatmap + Play/Pause Controls */}
         <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1.5">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              NativeiOSBridge.haptic('light', hapticsEnabled);
+              setShowBarPath((v) => !v);
+            }}
+            className={`px-2.5 py-1 rounded-xl border font-mono text-[10px] font-bold active:scale-90 transition-all ${
+              showBarPath
+                ? 'bg-sky-400/15 border-sky-400/35 text-sky-300'
+                : 'bg-slate-950/85 border-slate-400/15 text-slate-400'
+            }`}
+          >
+            Путь
+          </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -1048,7 +1386,7 @@ export const BarbellWebGL3D: React.FC<BarbellWebGL3DProps> = ({
             }}
             className={`px-2.5 py-1 rounded-xl border font-mono text-[10px] font-bold active:scale-90 transition-all ${
               showHeatmap
-                ? 'bg-orange-500/20 border-orange-400/50 text-orange-300'
+                ? 'bg-sky-400/15 border-sky-400/35 text-sky-300'
                 : 'bg-slate-950/85 border-slate-400/15 text-slate-400'
             }`}
           >

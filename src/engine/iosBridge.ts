@@ -1,3 +1,23 @@
+let sharedAudioCtx: AudioContext | null = null;
+
+function getSharedAudioContext(): AudioContext | null {
+  try {
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return null;
+    if (!sharedAudioCtx || sharedAudioCtx.state === 'closed') {
+      sharedAudioCtx = new AudioCtx();
+    }
+    if (sharedAudioCtx.state === 'suspended') {
+      void sharedAudioCtx.resume();
+    }
+    return sharedAudioCtx;
+  } catch {
+    return null;
+  }
+}
+
 export const NativeiOSBridge = {
   isNativeCapacitor(): boolean {
     const w = window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } };
@@ -86,10 +106,9 @@ export const NativeiOSBridge = {
     }
   },
   playChime(): void {
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
     try {
-      const AudioCtx =
-        window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      const ctx = new AudioCtx();
       const now = ctx.currentTime;
       [880, 1174.66].forEach((freq, i) => {
         const osc = ctx.createOscillator();
@@ -107,10 +126,9 @@ export const NativeiOSBridge = {
   },
   playPlateClank(enabled = true, pitchMultiplier = 1): void {
     if (!enabled) return;
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
     try {
-      const AudioCtx =
-        window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      const ctx = new AudioCtx();
       const now = ctx.currentTime;
       const freqs = [220 * pitchMultiplier, 495 * pitchMultiplier, 1140 * pitchMultiplier];
       freqs.forEach((f, idx) => {
@@ -125,6 +143,73 @@ export const NativeiOSBridge = {
         gain.connect(ctx.destination);
         osc.start(now);
         osc.stop(now + 0.16);
+      });
+    } catch {}
+  },
+  playTick(enabled = true): void {
+    if (!enabled) return;
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(1450, now);
+      osc.frequency.exponentialRampToValueAtTime(420, now + 0.018);
+      gain.gain.setValueAtTime(0.045, now);
+      gain.gain.exponentialRampToValueAtTime(0.0005, now + 0.02);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.022);
+    } catch {}
+  },
+  playSetSnap(enabled = true): void {
+    if (!enabled) return;
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      [
+        { type: 'triangle' as OscillatorType, f0: 210, f1: 75, dur: 0.048, vol: 0.13 },
+        { type: 'sine' as OscillatorType, f0: 1850, f1: 920, dur: 0.022, vol: 0.055 },
+      ].forEach((n) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = n.type;
+        osc.frequency.setValueAtTime(n.f0, now);
+        osc.frequency.exponentialRampToValueAtTime(n.f1, now + n.dur);
+        gain.gain.setValueAtTime(n.vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.0008, now + n.dur + 0.004);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + n.dur + 0.006);
+      });
+    } catch {}
+  },
+  playPrPulse(enabled = true): void {
+    if (!enabled) return;
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      [
+        { delay: 0, freq: 587.33 },
+        { delay: 0.095, freq: 880.0 },
+      ].forEach((p) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(p.freq, now + p.delay);
+        gain.gain.setValueAtTime(0.001, now + p.delay);
+        gain.gain.linearRampToValueAtTime(0.095, now + p.delay + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0008, now + p.delay + 0.16);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + p.delay);
+        osc.stop(now + p.delay + 0.17);
       });
     } catch {}
   },

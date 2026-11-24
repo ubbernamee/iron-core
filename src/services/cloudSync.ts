@@ -144,14 +144,27 @@ export interface LiveGymPeerState {
   reps: number;
   completedSets: number;
   totalSets: number;
+  tonnageKg?: number;
   updatedAt: number;
+}
+
+export interface LiveGymReaction {
+  from: string;
+  emoji: string;
+  label: string;
+  at: number;
 }
 
 export function joinLiveGymRoom(
   roomCode: string,
   myState: LiveGymPeerState,
-  onPeersChange: (peers: LiveGymPeerState[]) => void
-): { updateMyState: (next: LiveGymPeerState) => void; leave: () => void } | null {
+  onPeersChange: (peers: LiveGymPeerState[]) => void,
+  onReaction?: (reaction: LiveGymReaction) => void
+): {
+  updateMyState: (next: LiveGymPeerState) => void;
+  sendReaction: (emoji: string, label: string) => void;
+  leave: () => void;
+} | null {
   const sb = getSupabaseClient();
   if (!sb) return null;
 
@@ -196,6 +209,16 @@ export function joinLiveGymRoom(
         emitPeers();
       }
     })
+    .on('broadcast', { event: 'gym-reaction' }, ({ payload }) => {
+      if (payload?.from && payload?.key !== myKey) {
+        onReaction?.({
+          from: String(payload.from),
+          emoji: String(payload.emoji || '🔥'),
+          label: String(payload.label || ''),
+          at: Number(payload.at) || Date.now(),
+        });
+      }
+    })
     .subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
         isSubscribed = true;
@@ -215,6 +238,15 @@ export function joinLiveGymRoom(
           payload: { key: myKey, state: next },
         });
         void channel.track(next);
+      }
+    },
+    sendReaction: (emoji: string, label: string) => {
+      if (isSubscribed) {
+        void channel.send({
+          type: 'broadcast',
+          event: 'gym-reaction',
+          payload: { key: myKey, from: latestState.name, emoji, label, at: Date.now() },
+        });
       }
     },
     leave: () => {

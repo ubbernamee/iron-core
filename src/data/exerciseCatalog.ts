@@ -171,3 +171,21 @@ export function computeMuscleLoad(
   }
   return normalized;
 }
+
+
+export const MUSCLE_LABELS_RU: Record<MuscleGroupId, string> = {
+  chest: 'Грудные',
+  front_delts: 'Передние дельты',
+  side_delts: 'Средние дельты',
+  rear_delts: 'Задние дельты',
+  triceps: 'Трицепс',
+  biceps: 'Бицепс',
+  lats: 'Широчайшие',
+  upper_back: 'Верх спины',
+  lower_back: 'Поясница',
+  quads: 'Квадрицепсы',
+  hamstrings: 'Бицепс бедра',
+  glutes: 'Ягодичные',
+  calves: 'Икры',
+  core: 'Кор и пресс',
+};
